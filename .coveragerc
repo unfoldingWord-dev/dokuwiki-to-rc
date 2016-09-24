@@ -1,0 +1,6 @@
+[run]
+source =
+    converters
+
+omit =
+    */__init__.py
