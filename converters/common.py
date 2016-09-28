@@ -1,8 +1,13 @@
 from __future__ import print_function, unicode_literals
+
+import json
 import re
 
 # regular expressions for replacing Dokuwiki formatting
+import urllib
+import urllib2
 from collections import OrderedDict
+from contextlib import closing
 from datetime import datetime
 from json import JSONEncoder
 
@@ -48,6 +53,31 @@ def dokuwiki_to_markdown(text):
     text = li_space_re.sub(r'\1', text)
 
     return text
+
+
+def post_url(url, data, catch_exception=False):
+    """
+    :param str|unicode url: URL to open
+    :param dict data: The post data
+    :param bool catch_exception: If <True> catches all exceptions and returns <False>
+    """
+
+    if catch_exception:
+        # noinspection PyBroadException
+        try:
+            with closing(urllib2.urlopen(url, data=data)) as request:
+                response = request.read()
+        except:
+            response = False
+    else:
+        with closing(urllib2.urlopen(url, data=urllib.urlencode(data, True))) as request:
+            response = request.read()
+
+    # convert bytes to str (Python 3.5)
+    if type(response) is bytes:
+        return response.decode('utf-8')
+    else:
+        return response
 
 
 class ResourceManifest(object):

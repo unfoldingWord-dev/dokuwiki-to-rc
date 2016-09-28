@@ -1,12 +1,22 @@
 from __future__ import print_function, unicode_literals
 import json
 import os
+
+import re
+import urllib
+
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
-from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder
+from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder, post_url
 
 
 class TWConverter(object):
+
+    # [[:en:obe:kt:adultery|adultery, adulterous, adulterer, adulteress]]
+    tw_link_re = re.compile(r'\[\[.*?:obe:(kt|other):(.*?)\|(.*?)\]\]', re.UNICODE)
+    squiggly_re = re.compile(r'~~(?:DISCUSSION|NOCACHE)~~\n', re.UNICODE)
+    extra_blanks_re = re.compile(r'\n{3,}', re.UNICODE)
+    page_query_re = re.compile(r'\{\{door43pages.*@:?(.*?)\s.*-q="(.*?)".*\}\}', re.UNICODE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
@@ -105,9 +115,24 @@ class TWConverter(object):
         quiet_print(self.quiet, 'Converting {0} to markdown...'.format(file_name), end=' ')
         md_text = dokuwiki_to_markdown(dw_text)
 
-        old_url = 'https://api.unfoldingword.org/obs/jpg/1/en/'
-        cdn_url = 'https://cdn.door43.org/obs/jpg/'
-        md_text = md_text.replace(old_url, cdn_url)
+        # old_url = 'https://api.unfoldingword.org/obs/jpg/1/en/'
+        # cdn_url = 'https://cdn.door43.org/obs/jpg/'
+        # md_text = md_text.replace(old_url, cdn_url)
+
+        # fix links to other tW articles
+        md_text = self.tw_link_re.sub(r'[\3](../\1/\2.md)', md_text)
+
+        # remove squiggly tags
+        md_text = self.squiggly_re.sub(r'', md_text)
+
+        # remove publish tag
+        md_text = md_text.replace('{{tag>publish}}', '')
+
+        # get page query
+        md_text = self.get_page_query(md_text)
+
+        # remove extra blank lines
+        md_text = self.extra_blanks_re.sub(r'\n\n', md_text)
 
         quiet_print(self.quiet, 'finished.')
 
@@ -116,3 +141,21 @@ class TWConverter(object):
         quiet_print(self.quiet, 'Saving {0}...'.format(save_as), end=' ')
         write_file(save_as, md_text)
         quiet_print(self.quiet, 'finished.')
+
+    def get_page_query(self, md_text):
+
+        search_results = self.page_query_re.search(md_text)
+        if not search_results:
+            return md_text
+
+        data = [("requested_namespaces[]", [search_results.group(1)]),
+                ("requested_directories[]", [search_results.group(1).replace(':', '\/')]),
+                ("query[]", [search_results.group(2)]),
+                ("div_id", "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")]
+
+        post_data = {'call': 'get_door43pagequery_async', 'data[]': data}
+
+        response = post_url('http://door43.localhost/lib/exe/ajax.php', post_data)
+        md_text = self.page_query_re.sub(r'results', md_text)
+
+        return md_text
