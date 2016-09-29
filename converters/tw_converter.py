@@ -10,7 +10,8 @@ from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifes
 class TWConverter(object):
 
     # [[:en:obe:kt:adultery|adultery, adulterous, adulterer, adulteress]]
-    tw_link_re = re.compile(r'\[\[.*?:obe:(kt|other):(.*?)\|(.*?)\]\]', re.UNICODE)
+    tw_link_re = re.compile(r'\[\[.*?:obe:(kt|other):(.*?)\]\]', re.UNICODE)
+    obs_link_re = re.compile(r'\[\[.*?:obs:notes:frames:(.*?)\]\]', re.UNICODE)
     squiggly_re = re.compile(r'~~(?:DISCUSSION|NOCACHE)~~\n', re.UNICODE)
     extra_blanks_re = re.compile(r'\n{3,}', re.UNICODE)
     page_query_re = re.compile(r'\{\{door43pages.*@:?(.*?)\s.*-q="(.*?)".*\}\}', re.UNICODE)
@@ -117,13 +118,14 @@ class TWConverter(object):
         # md_text = md_text.replace(old_url, cdn_url)
 
         # fix links to other tW articles
-        md_text = self.tw_link_re.sub(r'[\3](../\1/\2.md)', md_text)
-
-        # remove squiggly tags
-        md_text = self.squiggly_re.sub(r'', md_text)
+        md_text = self.update_tw_links(md_text)  # self.tw_link_re.sub(r'[\3](../\1/\2.md)', md_text)
+        md_text = self.update_obs_links(md_text)
 
         # remove publish tag
         md_text = md_text.replace('{{tag>publish}}', '')
+
+        # remove squiggly tags
+        md_text = self.squiggly_re.sub(r'', md_text)
 
         # get page query
         md_text = self.get_page_query(md_text)
@@ -191,3 +193,35 @@ class TWConverter(object):
         md_text = self.page_query_re.sub(listing, md_text)
 
         return md_text
+
+    def update_tw_links(self, md_text):
+
+        search_results = self.tw_link_re.search(md_text)
+        if not search_results:
+            return md_text
+
+        return self.tw_link_re.sub(self.replace_tw_link, md_text)
+
+    @staticmethod
+    def replace_tw_link(match):
+
+        parts = match.group(2).split('|', 1)
+
+        if len(parts) == 1:
+            return '[{0}](../{1}/{0}.md)'.format(parts[0], match.group(1))
+
+        return '[{0}](../{1}/{2}.md)'.format(parts[1], match.group(1), parts[0])
+
+    def update_obs_links(self, md_text):
+
+        search_results = self.obs_link_re.search(md_text)
+        if not search_results:
+            return md_text
+
+        return self.obs_link_re.sub(self.replace_obs_link, md_text)
+
+    @staticmethod
+    def replace_obs_link(match):
+
+        parts = match.group(1).split('|', 1)
+        return '[{0}](https://door43.org/en/obs/notes/frames/{0})'.format(parts[0])
