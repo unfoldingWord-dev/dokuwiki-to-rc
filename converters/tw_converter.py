@@ -1,10 +1,7 @@
 from __future__ import print_function, unicode_literals
 import json
 import os
-
 import re
-import urllib
-
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
 from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder, post_url
@@ -148,14 +145,49 @@ class TWConverter(object):
         if not search_results:
             return md_text
 
-        data = [("requested_namespaces[]", [search_results.group(1)]),
-                ("requested_directories[]", [search_results.group(1).replace(':', '\/')]),
-                ("query[]", [search_results.group(2)]),
-                ("div_id", "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA")]
+        post_data = {'call': 'get_door43pagequery2',
+                     'data[subns]': 'false',
+                     'data[nopages]': 'false',
+                     'data[simpleList]': 'false',
+                     'data[lineBreak]': 'true',
+                     'data[excludedPages][]': 'home',
+                     'data[title]': 'true',
+                     'data[wantedNS]': '',
+                     'data[wantedDir]': '',
+                     'data[safe]': 'true',
+                     'data[textNS]': '',
+                     'data[textPages]': '',
+                     'data[maxDepth]': '0',
+                     'data[nbCol]': '3',
+                     'data[simpleLine]': 'false',
+                     'data[sortid]': 'false',
+                     'data[reverse]': 'false',
+                     'data[pagesinns]': 'false',
+                     'data[anchorName]': '',
+                     'data[actualTitleLevel]': 'false',
+                     'data[idAndTitle]': 'false',
+                     'data[nbItemsMax]': '0',
+                     'data[numberedList]': 'false',
+                     'data[natOrder]': 'false',
+                     'data[sortDate]': 'false',
+                     'data[useLegacySyntax]': 'false',
+                     'data[hidenopages]': 'false',
+                     'data[hidenosubns]': 'false',
+                     'data[requested_namespaces][]': search_results.group(1),
+                     'data[requested_directories][]': search_results.group(1).replace(':', '/'),
+                     'data[showcount]': 'false',
+                     'data[fontsize][]': '100%',
+                     'data[pos]': '1638',
+                     'data[query][]': search_results.group(2),
+                     'data[div_id]': '66D43DB7-68D9-781D-F94B-37FCAAAC0171'
+                     }
 
-        post_data = {'call': 'get_door43pagequery_async', 'data[]': data}
+        response = json.loads(post_url('https://door43.org/lib/exe/ajax.php', post_data))
+        listing = '\n'
 
-        response = post_url('http://door43.localhost/lib/exe/ajax.php', post_data)
-        md_text = self.page_query_re.sub(r'results', md_text)
+        for ref in response:
+            listing += '* [{0}](https://door43.org/{1})\n'.format(ref[1], ref[0])
+
+        md_text = self.page_query_re.sub(listing, md_text)
 
         return md_text

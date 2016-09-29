@@ -1,16 +1,12 @@
 from __future__ import print_function, unicode_literals
-
-import json
 import re
-
-# regular expressions for replacing Dokuwiki formatting
-import urllib
-import urllib2
+import requests
 from collections import OrderedDict
 from contextlib import closing
 from datetime import datetime
 from json import JSONEncoder
 
+# regular expressions for replacing Dokuwiki formatting
 h1_re = re.compile(r'====== (.*?) ======', re.UNICODE)
 h2_re = re.compile(r'===== (.*?) =====', re.UNICODE)
 h3_re = re.compile(r'==== (.*?) ====', re.UNICODE)
@@ -55,23 +51,19 @@ def dokuwiki_to_markdown(text):
     return text
 
 
-def post_url(url, data, catch_exception=False):
+def post_url(url, data):
     """
     :param str|unicode url: URL to open
     :param dict data: The post data
-    :param bool catch_exception: If <True> catches all exceptions and returns <False>
     """
 
-    if catch_exception:
-        # noinspection PyBroadException
-        try:
-            with closing(urllib2.urlopen(url, data=data)) as request:
-                response = request.read()
-        except:
-            response = False
-    else:
-        with closing(urllib2.urlopen(url, data=urllib.urlencode(data, True))) as request:
-            response = request.read()
+    headers = {'User-Agent': 'Mozilla/5.0',
+               'Accept': 'application/json, text/javascript, */*; q=0.01',
+               'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+               'X-Requested-With': 'XMLHttpRequest'}
+
+    with closing(requests.Session()) as session:
+        response = session.post(url, data=data, headers=headers).content
 
     # convert bytes to str (Python 3.5)
     if type(response) is bytes:
