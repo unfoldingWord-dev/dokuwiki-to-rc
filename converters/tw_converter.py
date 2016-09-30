@@ -11,10 +11,11 @@ class TWConverter(object):
 
     # [[:en:obe:kt:adultery|adultery, adulterous, adulterer, adulteress]]
     tw_link_re = re.compile(r'\[\[.*?:obe:(kt|other):(.*?)\]\]', re.UNICODE)
-    obs_link_re = re.compile(r'\[\[.*?:obs:notes:frames:(.*?)\]\]', re.UNICODE)
-    squiggly_re = re.compile(r'~~(?:DISCUSSION|NOCACHE)~~\n', re.UNICODE)
+    obs_link_re = re.compile(r'\[\[.*?:obs:notes:frames:(.*?)\]{2,3}', re.UNICODE)
+    squiggly_re = re.compile(r'~~(?:DISCUSSION|NOCACHE)~~', re.UNICODE)
     extra_blanks_re = re.compile(r'\n{3,}', re.UNICODE)
     page_query_re = re.compile(r'\{\{door43pages.*@:?(.*?)\s.*-q="(.*?)".*\}\}', re.UNICODE)
+    tag_re = re.compile(r'\{\{tag>.*?\}\}', re.UNICODE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
@@ -102,6 +103,10 @@ class TWConverter(object):
     def download_tw_file(self, url_to_download, out_dir):
 
         file_name = url_to_download.rsplit('/', 1)[1]
+        save_as = os.path.join(out_dir, file_name.replace('.txt', '.md'))
+        if os.path.isfile(save_as):
+            quiet_print(self.quiet, 'Skipping {0}.'.format(file_name))
+            return
 
         try:
             quiet_print(self.quiet, 'Downloading {0}...'.format(url_to_download), end=' ')
@@ -121,8 +126,8 @@ class TWConverter(object):
         md_text = self.update_tw_links(md_text)  # self.tw_link_re.sub(r'[\3](../\1/\2.md)', md_text)
         md_text = self.update_obs_links(md_text)
 
-        # remove publish tag
-        md_text = md_text.replace('{{tag>publish}}', '')
+        # remove tags
+        md_text = self.tag_re.sub(r'', md_text)
 
         # remove squiggly tags
         md_text = self.squiggly_re.sub(r'', md_text)
@@ -134,8 +139,6 @@ class TWConverter(object):
         md_text = self.extra_blanks_re.sub(r'\n\n', md_text)
 
         quiet_print(self.quiet, 'finished.')
-
-        save_as = os.path.join(out_dir, file_name.replace('.txt', '.md'))
 
         quiet_print(self.quiet, 'Saving {0}...'.format(save_as), end=' ')
         write_file(save_as, md_text)
@@ -188,7 +191,7 @@ class TWConverter(object):
         listing = '\n'
 
         for ref in response:
-            listing += '* [{0}](https://door43.org/{1})\n'.format(ref[1], ref[0])
+            listing += '* [{0}](https://door43.org{1})\n'.format(ref[1], ref[0])
 
         md_text = self.page_query_re.sub(listing, md_text)
 
