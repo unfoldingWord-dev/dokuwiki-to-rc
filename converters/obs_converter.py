@@ -27,7 +27,7 @@ class OBSConverter(object):
         self.quiet = quiet
         # self.temp_dir = ''
 
-        if 'github' not in git_repo:
+        if 'github' not in git_repo and 'file://' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
