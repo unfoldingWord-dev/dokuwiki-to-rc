@@ -24,4 +24,4 @@ if __name__ == '__main__':
 
         with open('cli/' + cmd) as f:
             code = compile(f.read(), cmd, 'exec')
-            exec code
+            exec(code)
