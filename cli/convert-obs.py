@@ -5,7 +5,7 @@ from general_tools.print_utils import print_ok
 from converters.obs_converter import OBSConverter
 
 if __name__ == '__main__':
-    print()
+    print('')
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang', default=False,

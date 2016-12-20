@@ -86,27 +86,27 @@ class OBSConverter(object):
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
         manifest = OBSManifest()
-        manifest.status['pub_date'] = status['publish_date']
-        manifest.status['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
-        manifest.status['checking_level'] = status['checking_level']
-        manifest.status['comments'] = status['comments']
-        manifest.status['version'] = status['version']
-        manifest.status['pub_date'] = status['publish_date']
-        manifest.status['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
+        manifest.package_version = 0.1
+        manifest.resource['status']['pub_date'] = status['publish_date']
+        manifest.resource['status']['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
+        manifest.resource['status']['checking_level'] = status['checking_level']
+        manifest.resource['status']['comments'] = status['comments']
+        manifest.resource['status']['version'] = status['version']
+        manifest.resource['status']['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
 
         source_translation = OBSSourceTranslation()
         source_translation.language_slug = status['source_text']
         source_translation.resource_slug = 'obs'
         source_translation.version = status['source_text_version']
 
-        manifest.status['source_translations'].append(source_translation)
+        manifest.resource['status']['source_translations'].append(source_translation)
 
         manifest.language['slug'] = lang_code
         manifest.language['name'] = self.lang_data['ang']
         manifest.language['dir'] = self.lang_data['ld']
 
         manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=OBSManifestEncoder)
-        write_file(os.path.join(self.out_dir, 'manifest.json'), manifest_str)
+        write_file(os.path.join(self.out_dir, 'package.json'), manifest_str)
 
     def download_obs_file(self, base_url, file_to_download, out_dir):
 
