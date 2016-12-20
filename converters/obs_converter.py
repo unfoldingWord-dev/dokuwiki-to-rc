@@ -5,22 +5,10 @@ import re
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
 from obs.obs_classes import OBS, OBSManifest, OBSSourceTranslation, OBSManifestEncoder
+from converters.common import quiet_print, dokuwiki_to_markdown
 
 
 class OBSConverter(object):
-
-    # regular expressions for replacing Dokuwiki formatting
-    h1_re = re.compile(r'====== (.*?) ======', re.UNICODE)
-    h2_re = re.compile(r'===== (.*?) =====', re.UNICODE)
-    h3_re = re.compile(r'==== (.*?) ====', re.UNICODE)
-    h4_re = re.compile(r'=== (.*?) ===', re.UNICODE)
-    h5_re = re.compile(r'== (.*?) ==', re.UNICODE)
-    italic_re = re.compile(r'[^:]//(.*?)//', re.UNICODE)
-    bold_re = re.compile(r'\*\*(.*?)\*\*', re.UNICODE)
-    image_re = re.compile(r'\{\{(.*?)\}\}', re.UNICODE)
-    link_re = re.compile(r'\[\[(http[s]*:[^:]*)\|(.*?)\]\]', re.UNICODE)
-    li_re = re.compile(r'[ ]{1,3}(\*)', re.UNICODE)
-    li_space_re = re.compile(r'^(\*.*\n)\n(?=\*)', re.UNICODE + re.MULTILINE)
 
     # regular expressions for removing text formatting
     html_tag_re = re.compile(r'<.*?>', re.UNICODE)
@@ -39,15 +27,15 @@ class OBSConverter(object):
         self.quiet = quiet
         # self.temp_dir = ''
 
-        if 'github' not in git_repo:
+        if 'github' not in git_repo and 'file://' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
         try:
-            self.quiet_print('Downloading language data...', end=' ')
+            quiet_print(self.quiet, 'Downloading language data...', end=' ')
             langs = get_languages()
         finally:
-            self.quiet_print('finished.')
+            quiet_print(self.quiet, 'finished.')
 
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
@@ -98,76 +86,53 @@ class OBSConverter(object):
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
         manifest = OBSManifest()
-        manifest.status['pub_date'] = status['publish_date']
-        manifest.status['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
-        manifest.status['checking_level'] = status['checking_level']
-        manifest.status['comments'] = status['comments']
-        manifest.status['version'] = status['version']
-        manifest.status['pub_date'] = status['publish_date']
-        manifest.status['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
+        manifest.package_version = 0.1
+        manifest.resource['status']['pub_date'] = status['publish_date']
+        manifest.resource['status']['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
+        manifest.resource['status']['checking_level'] = status['checking_level']
+        manifest.resource['status']['comments'] = status['comments']
+        manifest.resource['status']['version'] = status['version']
+        manifest.resource['status']['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
 
         source_translation = OBSSourceTranslation()
         source_translation.language_slug = status['source_text']
         source_translation.resource_slug = 'obs'
         source_translation.version = status['source_text_version']
 
-        manifest.status['source_translations'].append(source_translation)
+        manifest.resource['status']['source_translations'].append(source_translation)
 
         manifest.language['slug'] = lang_code
         manifest.language['name'] = self.lang_data['ang']
         manifest.language['dir'] = self.lang_data['ld']
 
         manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=OBSManifestEncoder)
-        write_file(os.path.join(self.out_dir, 'manifest.json'), manifest_str)
+        write_file(os.path.join(self.out_dir, 'package.json'), manifest_str)
 
     def download_obs_file(self, base_url, file_to_download, out_dir):
 
         download_url = join_url_parts(base_url, 'master/obs', file_to_download)
 
         try:
-            self.quiet_print('Downloading {0}...'.format(download_url), end=' ')
+            quiet_print(self.quiet, 'Downloading {0}...'.format(download_url), end=' ')
             dw_text = get_url(download_url)  # .decode('utf-8')
 
         finally:
-            self.quiet_print('finished.')
+            quiet_print(self.quiet, 'finished.')
 
-        self.quiet_print('Converting {0} to markdown...'.format(file_to_download), end=' ')
-        md_text = self.replace_dokuwiki_text(dw_text)
-        self.quiet_print('finished.')
-
-        save_as = os.path.join(out_dir, file_to_download.replace('.txt', '.md'))
-
-        self.quiet_print('Saving {0}...'.format(save_as), end=' ')
-        write_file(save_as, md_text)
-        self.quiet_print('finished.')
-
-    def replace_dokuwiki_text(self, text):
-        """
-        Cleans up text from possible DokuWiki and HTML tag pollution.
-        :param str text:
-        :return: str
-        """
-        text = text.replace('\r', '')
-        text = text.replace('\n\n\n\n\n', '\n\n')
-        text = text.replace('\n\n\n\n', '\n\n')
-        text = text.replace('\n\n\n', '\n\n')
-        text = self.h1_re.sub(r'# \1', text)
-        text = self.h2_re.sub(r'## \1', text)
-        text = self.h3_re.sub(r'### \1', text)
-        text = self.h4_re.sub(r'#### \1', text)
-        text = self.h5_re.sub(r'##### \1', text)
-        text = self.italic_re.sub(r'_\1_', text)
-        text = self.bold_re.sub(r'__\1__', text)
-        text = self.image_re.sub(r'![OBS Image](\1)', text)
-        text = self.link_re.sub(r'[\2](\1)', text)
-        text = self.li_re.sub(r'\1', text)
-        text = self.li_space_re.sub(r'\1', text)
+        quiet_print(self.quiet, 'Converting {0} to markdown...'.format(file_to_download), end=' ')
+        md_text = dokuwiki_to_markdown(dw_text)
 
         old_url = 'https://api.unfoldingword.org/obs/jpg/1/en/'
         cdn_url = 'https://cdn.door43.org/obs/jpg/'
-        text = text.replace(old_url, cdn_url)
+        md_text = md_text.replace(old_url, cdn_url)
 
-        return text
+        quiet_print(self.quiet, 'finished.')
+
+        save_as = os.path.join(out_dir, file_to_download.replace('.txt', '.md'))
+
+        quiet_print(self.quiet, 'Saving {0}...'.format(save_as), end=' ')
+        write_file(save_as, md_text)
+        quiet_print(self.quiet, 'finished.')
 
     def clean_text(self, text):
         """
@@ -195,8 +160,3 @@ class OBSConverter(object):
             return_val[k.strip().lower().replace(' ', '_')] = v.strip()
 
         return return_val
-
-    def quiet_print(self, message, end='\n'):
-
-        if not self.quiet:
-            print(message, end=end)

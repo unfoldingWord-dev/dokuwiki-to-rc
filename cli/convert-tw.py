@@ -2,10 +2,10 @@ from __future__ import print_function, unicode_literals
 import argparse
 import sys
 from general_tools.print_utils import print_ok
-from converters.obs_converter import OBSConverter
+from converters.tw_converter import TWConverter
 
 if __name__ == '__main__':
-    print('')
+    print()
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-l', '--lang', dest='lang', default=False,
@@ -18,7 +18,7 @@ if __name__ == '__main__':
     args = parser.parse_args(sys.argv[1:])
 
     # do the import
-    with OBSConverter(args.lang, args.gitrepo, args.outdir, False) as importer:
+    with TWConverter(args.lang, args.gitrepo, args.outdir, False) as importer:
         importer.run()
 
     print_ok('ALL FINISHED: ', 'Please check the output directory.')

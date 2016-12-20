@@ -13,7 +13,7 @@ class TestImportFromDokuwiki(TestCase):
         This tests the expected conditions
         """
         lang = 'en'
-        git_repo = 'file://' + os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'github.com/')
+        git_repo = 'file://' + os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/')
         out_dir = tempfile.mkdtemp(prefix='testOBS_')
 
         try:
@@ -21,7 +21,7 @@ class TestImportFromDokuwiki(TestCase):
                 importer.run()
 
             # check for output files
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'manifest.json')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'package.json')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_back', 'back-matter.md')))
@@ -37,7 +37,7 @@ class TestImportFromDokuwiki(TestCase):
         This test the exception when the repository is not on github
         """
         lang = 'en'
-        git_repo = 'file://' + os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources', 'git.door43.org')
+        git_repo = 'https://git.door43.org/door43/en-obs'
         out_dir = tempfile.mkdtemp(prefix='testOBS_')
 
         try:
