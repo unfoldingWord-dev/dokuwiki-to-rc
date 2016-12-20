@@ -21,7 +21,7 @@ class TestImportFromDokuwiki(TestCase):
                 importer.run()
 
             # check for output files
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'manifest.json')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'package.json')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_back', 'back-matter.md')))
