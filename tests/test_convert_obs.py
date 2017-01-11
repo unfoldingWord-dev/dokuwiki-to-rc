@@ -46,25 +46,25 @@ class TestImportFromDokuwiki(TestCase):
             if os.path.isdir(out_dir):
                 shutil.rmtree(out_dir, ignore_errors=True)
 
-    def test_not_github(self):
-        """
-        This test the exception when the repository is not on github
-        """
-        lang = 'en'
-        git_repo = 'https://git.door43.org/door43/en-obs'
-        out_dir = tempfile.mkdtemp(prefix='testOBS_')
-
-        try:
-            with self.assertRaises(Exception) as context:
-                with OBSConverter(lang, git_repo, out_dir, False) as importer:
-                    importer.run()
-
-            self.assertEqual('Currently only github repositories are supported.', str(context.exception))
-
-        finally:
-            # delete temp files
-            if os.path.isdir(out_dir):
-                shutil.rmtree(out_dir, ignore_errors=True)
+    # def test_not_github(self):
+    #     """
+    #     This test the exception when the repository is not on github
+    #     """
+    #     lang = 'en'
+    #     git_repo = 'https://git.door43.org/door43/en-obs'
+    #     out_dir = tempfile.mkdtemp(prefix='testOBS_')
+    #
+    #     try:
+    #         with self.assertRaises(Exception) as context:
+    #             with OBSConverter(lang, git_repo, out_dir, False) as importer:
+    #                 importer.run()
+    #
+    #         self.assertEqual('Currently only github repositories are supported.', str(context.exception))
+    #
+    #     finally:
+    #         # delete temp files
+    #         if os.path.isdir(out_dir):
+    #             shutil.rmtree(out_dir, ignore_errors=True)
 
     def test_lang_code_not_found(self):
         """

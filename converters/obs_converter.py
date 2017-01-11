@@ -21,9 +21,9 @@ class OBSConverter(object):
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
 
     book_title_re = re.compile(r'^\_\_([^\_]+)\_\_', re.UNICODE)
-    chapter_title_re = re.compile(r'^#([^#]+)#', re.UNICODE)
+    chapter_title_re = re.compile(r'^#\s*(.+)', re.UNICODE)
     chapter_reference_re = re.compile(r'^\_([^\_]+)\_', re.UNICODE | re.MULTILINE)
-    image_re = re.compile(r'^\!\[Image\]', re.UNICODE | re.MULTILINE)
+    image_re = re.compile(r'^\!\[', re.UNICODE | re.MULTILINE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
@@ -37,7 +37,7 @@ class OBSConverter(object):
         self.out_dir = out_dir
         self.quiet = quiet
 
-        if 'github' not in git_repo and 'file://' not in git_repo:
+        if 'github' not in git_repo and 'file://' not in git_repo and 'git.door43' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
@@ -81,21 +81,21 @@ class OBSConverter(object):
         # download needed files from the repository
         files_to_download = []
         for i in range(1, 51):
-            files_to_download.append(str(i).zfill(2) + '.txt')
+            files_to_download.append(str(i).zfill(2) + '.md')
 
         # download OBS story files
         story_dir = os.path.join(self.out_dir, 'content')
         for file_to_download in files_to_download:
-            chapter_file = os.path.join(story_dir, file_to_download.replace('.txt', '.md'))
+            chapter_file = os.path.join(story_dir, file_to_download)
             self.download_obs_file(base_url, file_to_download, chapter_file)
             # split chapters into chunks
-            chapter_slug = file_to_download.replace('.txt', '')
+            chapter_slug = file_to_download.replace('.md', '')
             self.chunk_chapter(chapter_file, os.path.join(story_dir, chapter_slug))
             os.remove(chapter_file)
 
         # download front and back matter
-        self.download_obs_file(base_url, 'front-matter.txt', os.path.join(self.out_dir, 'content', 'front', 'intro.md'))
-        self.download_obs_file(base_url, 'back-matter.txt', os.path.join(self.out_dir, 'content', 'back', 'intro.md'))
+        self.download_obs_file(base_url, join_url_parts('_front', 'front-matter.md'), os.path.join(self.out_dir, 'content', 'front', 'intro.md'))
+        self.download_obs_file(base_url, join_url_parts('_back', 'back-matter.md'), os.path.join(self.out_dir, 'content', 'back', 'intro.md'))
 
         # book title
         with codecs.open(os.path.join(self.out_dir, 'content', 'front', 'intro.md'), 'r', encoding='utf-8') as in_front_file:
@@ -151,13 +151,20 @@ class OBSConverter(object):
             chunks = self.image_re.split(data)
             chunk_num = 1
             for chunk in chunks:
-                out_file = os.path.join(chapter_dir, str(chunk_num).zfill(2)) + '.md'
-                write_file(out_file, '![Image]'+chunk)
-                chunk_num += 1
+                chunk = chunk.lstrip().rstrip()
+                if chunk:
+                    out_file = os.path.join(chapter_dir, str(chunk_num).zfill(2)) + '.md'
+                    write_file(out_file, '!['+chunk)
+                    chunk_num += 1
 
     def download_obs_file(self, base_url, file_to_download, out_file):
 
-        download_url = join_url_parts(base_url, 'master/obs', file_to_download)
+        download_url = join_url_parts(base_url, 'raw/master/content', file_to_download)
+
+        # if re.search('github', base_url):
+        #     download_url = join_url_parts(base_url, 'master/obs', file_to_download)
+        # elif re.search('git.door43', base_url):
+        #     download_url = join_url_parts(base_url, 'raw/master/content', file_to_download)
 
         try:
             quiet_print(self.quiet, 'Downloading {0}...'.format(download_url), end=' ')

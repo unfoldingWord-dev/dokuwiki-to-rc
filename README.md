@@ -16,4 +16,4 @@ Install dependencies:
 
 ### Usage
 
-    
+    ./execute.py convert-obs -l en -r -o myobs
