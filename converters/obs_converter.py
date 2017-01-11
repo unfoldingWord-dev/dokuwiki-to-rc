@@ -20,9 +20,10 @@ class OBSConverter(object):
     html_tag_re = re.compile(r'<.*?>', re.UNICODE)
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
 
-    chapter_title_re = re.compile(r'^#.+', re.UNICODE)
-    chapter_reference_re = re.compile(r'^//.+', re.UNICODE)
-    image_re = re.compile(r'!\[Image\]', re.UNICODE)
+    book_title_re = re.compile(r'^\_\_([^\_]+)\_\_', re.UNICODE)
+    chapter_title_re = re.compile(r'^#([^#]+)#', re.UNICODE)
+    chapter_reference_re = re.compile(r'^\_([^\_]+)\_', re.UNICODE | re.MULTILINE)
+    image_re = re.compile(r'^\!\[Image\]', re.UNICODE | re.MULTILINE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
@@ -96,6 +97,13 @@ class OBSConverter(object):
         self.download_obs_file(base_url, 'front-matter.txt', os.path.join(self.out_dir, 'content', 'front', 'intro.md'))
         self.download_obs_file(base_url, 'back-matter.txt', os.path.join(self.out_dir, 'content', 'back', 'intro.md'))
 
+        # book title
+        with codecs.open(os.path.join(self.out_dir, 'content', 'front', 'intro.md'), 'r', encoding='utf-8') as in_front_file:
+            front_data = in_front_file.read()
+            if self.book_title_re.search(front_data):
+                title = self.book_title_re.search(front_data).group(1)
+                write_file(os.path.join(self.out_dir, 'content', 'front', 'title.md'), title)
+
         # get the status
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
@@ -129,15 +137,15 @@ class OBSConverter(object):
 
             # title
             if self.chapter_title_re.search(data):
-                title = self.chapter_title_re.findall(data)[0]
+                title = self.chapter_title_re.search(data).group(1)
                 write_file(os.path.join(chapter_dir, 'title.md'), title)
-                data = self.chapter_title_re.sub('', data)
+                data = self.chapter_title_re.sub('', data).lstrip()
 
             # reference
             if self.chapter_reference_re.search(data):
-                reference  = self.chapter_reference_re.findall(data)[0]
+                reference = self.chapter_reference_re.search(data).group(1)
                 write_file(os.path.join(chapter_dir, 'reference.md'), reference)
-                data = self.chapter_reference_re.sub('', data)
+                data = self.chapter_reference_re.sub('', data).rstrip()
 
             # chunks
             chunks = self.image_re.split(data)
