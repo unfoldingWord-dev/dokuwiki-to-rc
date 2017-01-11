@@ -16,4 +16,6 @@ Install dependencies:
 
 ### Usage
 
-    ./execute.py convert-obs -l en -r -o myobs
+Downloads the obs translation from the url and converts it to RC format in the output directory:
+
+    ./execute.py convert-obs -l en -r https://git.door43.org/Door43/en-obs -o myobs
