@@ -21,36 +21,50 @@ class TestImportFromDokuwiki(TestCase):
                 importer.run()
 
             # check for output files
+            self.assertFalse(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
+            self.assertFalse(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
+            self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_front')))
+            self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_back')))
+
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'package.json')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_back', 'back-matter.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_front', 'front-matter.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '01.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '02.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '03.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'reference.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', '01.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', '02.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', '03.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', 'reference.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'intro.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'back', 'intro.md')))
 
         finally:
             # delete temp files
             if os.path.isdir(out_dir):
                 shutil.rmtree(out_dir, ignore_errors=True)
 
-    def test_not_github(self):
-        """
-        This test the exception when the repository is not on github
-        """
-        lang = 'en'
-        git_repo = 'https://git.door43.org/door43/en-obs'
-        out_dir = tempfile.mkdtemp(prefix='testOBS_')
-
-        try:
-            with self.assertRaises(Exception) as context:
-                with OBSConverter(lang, git_repo, out_dir, False) as importer:
-                    importer.run()
-
-            self.assertEqual('Currently only github repositories are supported.', str(context.exception))
-
-        finally:
-            # delete temp files
-            if os.path.isdir(out_dir):
-                shutil.rmtree(out_dir, ignore_errors=True)
+    # def test_not_github(self):
+    #     """
+    #     This test the exception when the repository is not on github
+    #     """
+    #     lang = 'en'
+    #     git_repo = 'https://git.door43.org/door43/en-obs'
+    #     out_dir = tempfile.mkdtemp(prefix='testOBS_')
+    #
+    #     try:
+    #         with self.assertRaises(Exception) as context:
+    #             with OBSConverter(lang, git_repo, out_dir, False) as importer:
+    #                 importer.run()
+    #
+    #         self.assertEqual('Currently only github repositories are supported.', str(context.exception))
+    #
+    #     finally:
+    #         # delete temp files
+    #         if os.path.isdir(out_dir):
+    #             shutil.rmtree(out_dir, ignore_errors=True)
 
     def test_lang_code_not_found(self):
         """
