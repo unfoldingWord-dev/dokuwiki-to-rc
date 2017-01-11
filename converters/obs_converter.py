@@ -1,18 +1,28 @@
 from __future__ import print_function, unicode_literals
+
+import codecs
 import json
 import os
 import re
-from general_tools.file_utils import write_file
+from general_tools.file_utils import write_file, make_dir
 from general_tools.url_utils import get_languages, join_url_parts, get_url
+from obs import chapters_and_frames
 from obs.obs_classes import OBS, OBSManifest, OBSSourceTranslation, OBSManifestEncoder
 from converters.common import quiet_print, dokuwiki_to_markdown
 
 
 class OBSConverter(object):
+    """
+    Converts an obs translation from DokuWiki format to Resource Container format.
+    """
 
     # regular expressions for removing text formatting
     html_tag_re = re.compile(r'<.*?>', re.UNICODE)
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
+
+    chapter_title_re = re.compile(r'^#.+', re.UNICODE)
+    chapter_reference_re = re.compile(r'^//.+', re.UNICODE)
+    image_re = re.compile(r'!\[Image\]', re.UNICODE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
@@ -25,7 +35,6 @@ class OBSConverter(object):
         self.git_repo = git_repo
         self.out_dir = out_dir
         self.quiet = quiet
-        # self.temp_dir = ''
 
         if 'github' not in git_repo and 'file://' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
@@ -56,7 +65,7 @@ class OBSConverter(object):
 
         lang_code = self.lang_data['lc']
 
-        # pre-flight checklist
+        # remove trailing slash
         if self.git_repo[-1:] == '/':
             self.git_repo = self.git_repo[:-1]
 
@@ -76,11 +85,16 @@ class OBSConverter(object):
         # download OBS story files
         story_dir = os.path.join(self.out_dir, 'content')
         for file_to_download in files_to_download:
-            self.download_obs_file(base_url, file_to_download, story_dir)
+            chapter_file = os.path.join(story_dir, file_to_download.replace('.txt', '.md'))
+            self.download_obs_file(base_url, file_to_download, chapter_file)
+            # split chapters into chunks
+            chapter_slug = file_to_download.replace('.txt', '')
+            self.chunk_chapter(chapter_file, os.path.join(story_dir, chapter_slug))
+            os.remove(chapter_file)
 
         # download front and back matter
-        self.download_obs_file(base_url, 'front-matter.txt', os.path.join(self.out_dir, 'content', '_front'))
-        self.download_obs_file(base_url, 'back-matter.txt', os.path.join(self.out_dir, 'content', '_back'))
+        self.download_obs_file(base_url, 'front-matter.txt', os.path.join(self.out_dir, 'content', 'front', 'intro.md'))
+        self.download_obs_file(base_url, 'back-matter.txt', os.path.join(self.out_dir, 'content', 'back', 'intro.md'))
 
         # get the status
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
@@ -108,7 +122,32 @@ class OBSConverter(object):
         manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=OBSManifestEncoder)
         write_file(os.path.join(self.out_dir, 'package.json'), manifest_str)
 
-    def download_obs_file(self, base_url, file_to_download, out_dir):
+    def chunk_chapter(self, chapter_file, chapter_dir):
+        make_dir(chapter_dir)
+        with codecs.open(chapter_file, 'r', encoding='utf-8') as in_file:
+            data = in_file.read()
+
+            # title
+            if self.chapter_title_re.search(data):
+                title = self.chapter_title_re.findall(data)[0]
+                write_file(os.path.join(chapter_dir, 'title.md'), title)
+                data = self.chapter_title_re.sub('', data)
+
+            # reference
+            if self.chapter_reference_re.search(data):
+                reference  = self.chapter_reference_re.findall(data)[0]
+                write_file(os.path.join(chapter_dir, 'reference.md'), reference)
+                data = self.chapter_reference_re.sub('', data)
+
+            # chunks
+            chunks = self.image_re.split(data)
+            chunk_num = 1
+            for chunk in chunks:
+                out_file = os.path.join(chapter_dir, str(chunk_num).zfill(2)) + '.md'
+                write_file(out_file, '![Image]'+chunk)
+                chunk_num += 1
+
+    def download_obs_file(self, base_url, file_to_download, out_file):
 
         download_url = join_url_parts(base_url, 'master/obs', file_to_download)
 
@@ -128,7 +167,7 @@ class OBSConverter(object):
 
         quiet_print(self.quiet, 'finished.')
 
-        save_as = os.path.join(out_dir, file_to_download.replace('.txt', '.md'))
+        save_as = out_file
 
         quiet_print(self.quiet, 'Saving {0}...'.format(save_as), end=' ')
         write_file(save_as, md_text)

@@ -21,11 +21,23 @@ class TestImportFromDokuwiki(TestCase):
                 importer.run()
 
             # check for output files
+            self.assertFalse(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
+            self.assertFalse(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
+            self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_front')))
+            self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_back')))
+
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'package.json')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_back', 'back-matter.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_front', 'front-matter.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '01.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '02.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'reference.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', '01.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', '02.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', 'reference.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'intro.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'back', 'intro.md')))
 
         finally:
             # delete temp files
