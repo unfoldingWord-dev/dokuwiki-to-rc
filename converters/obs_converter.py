@@ -21,7 +21,7 @@ class OBSConverter(object):
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
 
     book_title_re = re.compile(r'^\_\_([^\_]+)\_\_', re.UNICODE)
-    chapter_title_re = re.compile(r'^#\s*(.+)', re.UNICODE)
+    chapter_title_re = re.compile(r'^#\s*([^#]+)#*', re.UNICODE)
     chapter_reference_re = re.compile(r'^\_([^\_]+)\_', re.UNICODE | re.MULTILINE)
     image_re = re.compile(r'^\!\[', re.UNICODE | re.MULTILINE)
 
@@ -103,6 +103,8 @@ class OBSConverter(object):
             if self.book_title_re.search(front_data):
                 # TODO: split by pipe and just grab the last bit
                 title = self.book_title_re.search(front_data).group(1)
+                # clean piped titles
+                title = title.split('|')[-1].lstrip().rstrip()
                 write_file(os.path.join(self.out_dir, 'content', 'front', 'title.md'), title)
 
         # get the status
@@ -138,7 +140,7 @@ class OBSConverter(object):
 
             # title
             if self.chapter_title_re.search(data):
-                title = self.chapter_title_re.search(data).group(1)
+                title = self.chapter_title_re.search(data).group(1).rstrip()
                 write_file(os.path.join(chapter_dir, 'title.md'), title)
                 data = self.chapter_title_re.sub('', data).lstrip()
 

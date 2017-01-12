@@ -1,8 +1,13 @@
 from __future__ import print_function, unicode_literals
+
+import codecs
 import os
 from unittest import TestCase
 import tempfile
 import shutil
+
+from idna import codec
+
 from converters.obs_converter import OBSConverter
 
 
@@ -41,30 +46,34 @@ class TestImportFromDokuwiki(TestCase):
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'intro.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'back', 'intro.md')))
 
+            self.assert_file_contents(os.path.join(out_dir, 'content', 'front', 'title.md'), 'Open Bible Stories')
+            self.assert_file_contents(os.path.join(out_dir, 'content', '01', 'title.md'), '1. The Creation')
+            self.assert_file_contents(os.path.join(out_dir, 'content', '01', 'reference.md'), 'A Bible story from: Genesis 1-2')
+
         finally:
             # delete temp files
             if os.path.isdir(out_dir):
                 shutil.rmtree(out_dir, ignore_errors=True)
 
-    # def test_not_github(self):
-    #     """
-    #     This test the exception when the repository is not on github
-    #     """
-    #     lang = 'en'
-    #     git_repo = 'https://git.door43.org/door43/en-obs'
-    #     out_dir = tempfile.mkdtemp(prefix='testOBS_')
-    #
-    #     try:
-    #         with self.assertRaises(Exception) as context:
-    #             with OBSConverter(lang, git_repo, out_dir, False) as importer:
-    #                 importer.run()
-    #
-    #         self.assertEqual('Currently only github repositories are supported.', str(context.exception))
-    #
-    #     finally:
-    #         # delete temp files
-    #         if os.path.isdir(out_dir):
-    #             shutil.rmtree(out_dir, ignore_errors=True)
+    def test_not_github(self):
+        """
+        This test the exception when the repository is not on github
+        """
+        lang = 'en'
+        git_repo = 'https://git.door43.org/door43/en-obs'
+        out_dir = tempfile.mkdtemp(prefix='testOBS_')
+
+        try:
+            with self.assertRaises(Exception) as context:
+                with OBSConverter(lang, git_repo, out_dir, False) as importer:
+                    importer.run()
+
+            self.assertEqual('Currently only github repositories are supported.', str(context.exception))
+
+        finally:
+            # delete temp files
+            if os.path.isdir(out_dir):
+                shutil.rmtree(out_dir, ignore_errors=True)
 
     def test_lang_code_not_found(self):
         """
@@ -85,3 +94,14 @@ class TestImportFromDokuwiki(TestCase):
             # delete temp files
             if os.path.isdir(out_dir):
                 shutil.rmtree(out_dir, ignore_errors=True)
+
+    def assert_file_contents(self, file, contents):
+        """
+        Asserts that a file contents the given contents
+        :param file: the file to check
+        :param contents: the expected contents
+        :return:
+        """
+        with codecs.open(file, 'r', encoding='utf-8') as in_file:
+            data = in_file.read()
+            self.assertEqual(data, contents, file+' does not contain the expected content')
