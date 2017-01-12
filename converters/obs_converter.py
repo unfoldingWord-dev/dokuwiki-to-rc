@@ -37,7 +37,7 @@ class OBSConverter(object):
         self.out_dir = out_dir
         self.quiet = quiet
 
-        if 'github' not in git_repo and 'file://' not in git_repo and 'git.door43' not in git_repo:
+        if 'github' not in git_repo and 'file://' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
@@ -81,7 +81,7 @@ class OBSConverter(object):
         # download needed files from the repository
         files_to_download = []
         for i in range(1, 51):
-            files_to_download.append(str(i).zfill(2) + '.md')
+            files_to_download.append(str(i).zfill(2) + '.txt')
 
         # download OBS story files
         story_dir = os.path.join(self.out_dir, 'content')
@@ -89,18 +89,19 @@ class OBSConverter(object):
             chapter_file = os.path.join(story_dir, file_to_download)
             self.download_obs_file(base_url, file_to_download, chapter_file)
             # split chapters into chunks
-            chapter_slug = file_to_download.replace('.md', '')
+            chapter_slug = file_to_download.replace('.txt', '')
             self.chunk_chapter(chapter_file, os.path.join(story_dir, chapter_slug))
             os.remove(chapter_file)
 
         # download front and back matter
-        self.download_obs_file(base_url, join_url_parts('_front', 'front-matter.md'), os.path.join(self.out_dir, 'content', 'front', 'intro.md'))
-        self.download_obs_file(base_url, join_url_parts('_back', 'back-matter.md'), os.path.join(self.out_dir, 'content', 'back', 'intro.md'))
+        self.download_obs_file(base_url, 'front-matter.txt', os.path.join(self.out_dir, 'content', 'front', 'intro.md'))
+        self.download_obs_file(base_url, 'back-matter.txt', os.path.join(self.out_dir, 'content', 'back', 'intro.md'))
 
         # book title
         with codecs.open(os.path.join(self.out_dir, 'content', 'front', 'intro.md'), 'r', encoding='utf-8') as in_front_file:
             front_data = in_front_file.read()
             if self.book_title_re.search(front_data):
+                # TODO: split by pipe and just grab the last bit
                 title = self.book_title_re.search(front_data).group(1)
                 write_file(os.path.join(self.out_dir, 'content', 'front', 'title.md'), title)
 
@@ -159,12 +160,7 @@ class OBSConverter(object):
 
     def download_obs_file(self, base_url, file_to_download, out_file):
 
-        download_url = join_url_parts(base_url, 'raw/master/content', file_to_download)
-
-        # if re.search('github', base_url):
-        #     download_url = join_url_parts(base_url, 'master/obs', file_to_download)
-        # elif re.search('git.door43', base_url):
-        #     download_url = join_url_parts(base_url, 'raw/master/content', file_to_download)
+        download_url = join_url_parts(base_url, 'master/obs', file_to_download)
 
         try:
             quiet_print(self.quiet, 'Downloading {0}...'.format(download_url), end=' ')
