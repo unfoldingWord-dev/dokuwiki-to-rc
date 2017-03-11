@@ -6,8 +6,6 @@ from unittest import TestCase
 import tempfile
 import shutil
 
-from idna import codec
-
 from converters.obs_converter import OBSConverter
 
 
