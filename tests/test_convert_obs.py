@@ -49,10 +49,9 @@ class TestImportFromDokuwiki(TestCase):
             self.assert_file_contents(os.path.join(out_dir, 'content', '01', 'reference.md'), 'A Bible story from: Genesis 1-2')
 
         finally:
-            print('done', out_dir)
             # delete temp files
-            #if os.path.isdir(out_dir):
-            #    shutil.rmtree(out_dir, ignore_errors=True)
+            if os.path.isdir(out_dir):
+                shutil.rmtree(out_dir, ignore_errors=True)
 
     def test_not_github(self):
         """
@@ -70,10 +69,9 @@ class TestImportFromDokuwiki(TestCase):
             self.assertEqual('Currently only github repositories are supported.', str(context.exception))
 
         finally:
-            print('done')
             # delete temp files
-            #if os.path.isdir(out_dir):
-            #    shutil.rmtree(out_dir, ignore_errors=True)
+            if os.path.isdir(out_dir):
+                shutil.rmtree(out_dir, ignore_errors=True)
 
     def test_lang_code_not_found(self):
         """
@@ -91,10 +89,9 @@ class TestImportFromDokuwiki(TestCase):
             self.assertEqual('Information for language "{0}" was not found.'.format(lang), str(context.exception))
 
         finally:
-            print('done')
             # delete temp files
-            #if os.path.isdir(out_dir):
-                #shutil.rmtree(out_dir, ignore_errors=True)
+            if os.path.isdir(out_dir):
+                shutil.rmtree(out_dir, ignore_errors=True)
 
     def assert_file_contents(self, file, contents):
         """
