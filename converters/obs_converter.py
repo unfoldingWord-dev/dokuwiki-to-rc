@@ -11,6 +11,7 @@ from resource_container import factory
 import tempfile
 import shutil
 from datetime import datetime
+from .unicode_utils import to_str
 
 
 class OBSConverter(object):
@@ -115,27 +116,29 @@ class OBSConverter(object):
                     'title': self.lang_data['ang']
                 },
                 'modified': datetime.today().strftime('%Y-%m-%d'),
-                'source': {
+                'source': [{
                     'identifier': manifest.resource['slug'],
-                    'language': 'en',
+                    'language': manifest.language['slug'],
                     'version': status['source_text_version']
-                },
+                }],
                 'version': status['version'],
                 'issued': status['publish_date'],
-                'rights': 'CC BY-SA 4.0'
+                'rights': manifest.resource['status']['license']
             },
             'checking': {
                 'checking_entity': re.split(r'\s*;\s*|\s*,\s*', status['checking_entity']),
                 'checking_level': status['checking_level']
             },
             'projects': [{
-                'identifier': 'obs',
+                'identifier': manifest.resource['slug'],
                 'path': './content',
                 'title': title,
                 'versification': manifest.versification_slug
             }]
         }
         shutil.rmtree(self.out_dir)
+
+        new_manifest = to_str(new_manifest)
 
         rc = factory.create(self.out_dir, new_manifest)
 
