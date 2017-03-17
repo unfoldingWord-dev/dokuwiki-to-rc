@@ -10,6 +10,7 @@ from converters.common import quiet_print, dokuwiki_to_markdown
 from resource_container import factory
 import tempfile
 import shutil
+from datetime import datetime
 
 
 class OBSConverter(object):
@@ -105,16 +106,17 @@ class OBSConverter(object):
             'dublin_core': {
                 'title': title,
                 'type': 'book',
-                'format': 'text/markdown',
+                'format': manifest.content_mime_type,
                 'contributor': re.split(r'\s*;\s*|\s*,\s*', status['contributors']),
-                'identifier': 'obs',
+                'identifier': manifest.resource['slug'],
                 'language': {
                     'direction': self.lang_data['ld'],
                     'identifier': status['source_text'],
                     'title': self.lang_data['ang']
                 },
+                'modified': datetime.today().strftime('%Y-%m-%d'),
                 'source': {
-                    'identifier': 'obs',
+                    'identifier': manifest.resource['slug'],
                     'language': 'en',
                     'version': status['source_text_version']
                 },
@@ -129,11 +131,13 @@ class OBSConverter(object):
             'projects': [{
                 'identifier': 'obs',
                 'path': './content',
-                'title': title
+                'title': title,
+                'versification': manifest.versification_slug
             }]
         }
         shutil.rmtree(self.out_dir)
-        rc = factory.create(self.out_dir.encode('utf-8'), new_manifest)
+
+        rc = factory.create(self.out_dir, new_manifest)
 
         # download OBS story files
         story_dir = os.path.join(self.download_dir, 'content')
