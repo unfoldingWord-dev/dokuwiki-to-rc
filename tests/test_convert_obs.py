@@ -6,8 +6,6 @@ from unittest import TestCase
 import tempfile
 import shutil
 
-from idna import codec
-
 from converters.obs_converter import OBSConverter
 
 
@@ -31,7 +29,7 @@ class TestImportFromDokuwiki(TestCase):
             self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_front')))
             self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_back')))
 
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'package.json')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'manifest.yaml')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'title.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '01.md')))
             self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '02.md')))
