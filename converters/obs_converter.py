@@ -159,7 +159,7 @@ class OBSConverter(object):
         rc.write_chunk('front', 'intro', codecs.open(front_path, 'r', encoding='utf-8').read())
         rc.write_chunk('back', 'intro', codecs.open(back_path, 'r', encoding='utf-8').read())
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        shutil.copy(os.path.join(dir_path, 'LICENSE.md'), os.path.join(self.out_dir, 'LICENSE.md'))
+        shutil.copy(os.path.join(dir_path, 'OBS_LICENSE.md'), os.path.join(self.out_dir, 'LICENSE.md'))
 
     def chunk_chapter(self, rc, chapter_file, chapter):
         with codecs.open(chapter_file, 'r', encoding='utf-8') as in_file:
