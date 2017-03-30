@@ -102,14 +102,18 @@ class OBSConverter(object):
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
         manifest = OBSManifest()
-        manifest.resource['status']['comments'] = status['comments']
 
         new_manifest = {
             'dublin_core': {
                 'title': title,
                 'type': 'book',
                 'format': manifest.content_mime_type,
-                'contributor': re.split(r'\s*;\s*|\s*,\s*', status['contributors']),
+                'contributor': [
+                    'Distant Shores Media',
+                    'Wycliffe Associates'
+                ],
+                'creator': 'Distant Shores Media',
+                'description': 'An unrestricted visual mini-Bible in any language',
                 'identifier': manifest.resource['slug'],
                 'language': {
                     'direction': self.lang_data['ld'],
@@ -117,11 +121,18 @@ class OBSConverter(object):
                     'title': self.lang_data['ang']
                 },
                 'modified': datetime.today().strftime('%Y-%m-%d'),
+                'publisher': 'unfoldingWord',
+                'relation': [
+                    'en/tw',
+                    'en/obs-tq',
+                    'en/obs-tn'
+                ],
                 'source': [{
                     'identifier': manifest.resource['slug'],
                     'language': manifest.language['slug'],
                     'version': status['source_text_version']
                 }],
+                'subject': 'Bible stories',
                 'version': status['version'],
                 'issued': status['publish_date'],
                 'rights': 'CC BY-SA 4.0'
