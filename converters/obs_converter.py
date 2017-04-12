@@ -22,6 +22,7 @@ class OBSConverter(object):
     # regular expressions for removing text formatting
     html_tag_re = re.compile(r'<.*?>', re.UNICODE)
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
+    dir_link_re = re.compile(r'\?direct&', re.UNICODE)
 
     book_title_re = re.compile(r'^\_\_([^\_]+)\_\_', re.UNICODE)
     chapter_title_re = re.compile(r'^#\s*([^#]+)#*', re.UNICODE)
@@ -101,14 +102,18 @@ class OBSConverter(object):
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
         manifest = OBSManifest()
-        manifest.resource['status']['comments'] = status['comments']
 
         new_manifest = {
             'dublin_core': {
                 'title': title,
                 'type': 'book',
                 'format': manifest.content_mime_type,
-                'contributor': re.split(r'\s*;\s*|\s*,\s*', status['contributors']),
+                'contributor': [
+                    'Distant Shores Media',
+                    'Wycliffe Associates'
+                ],
+                'creator': 'Distant Shores Media',
+                'description': 'An unrestricted visual mini-Bible in any language',
                 'identifier': manifest.resource['slug'],
                 'language': {
                     'direction': self.lang_data['ld'],
@@ -116,22 +121,31 @@ class OBSConverter(object):
                     'title': self.lang_data['ang']
                 },
                 'modified': datetime.today().strftime('%Y-%m-%d'),
+                'publisher': 'unfoldingWord',
+                'relation': [
+                    'en/tw',
+                    'en/obs-tq',
+                    'en/obs-tn'
+                ],
                 'source': [{
                     'identifier': manifest.resource['slug'],
                     'language': manifest.language['slug'],
                     'version': status['source_text_version']
                 }],
+                'subject': 'Bible stories',
                 'version': status['version'],
                 'issued': status['publish_date'],
-                'rights': manifest.resource['status']['license']
+                'rights': 'CC BY-SA 4.0'
             },
             'checking': {
                 'checking_entity': re.split(r'\s*;\s*|\s*,\s*', status['checking_entity']),
                 'checking_level': status['checking_level']
             },
             'projects': [{
+                'categories': None,
                 'identifier': manifest.resource['slug'],
                 'path': './content',
+                'sort': 0,
                 'title': title,
                 'versification': manifest.versification_slug
             }]
@@ -155,6 +169,8 @@ class OBSConverter(object):
         rc.write_chunk('front', 'title', title)
         rc.write_chunk('front', 'intro', codecs.open(front_path, 'r', encoding='utf-8').read())
         rc.write_chunk('back', 'intro', codecs.open(back_path, 'r', encoding='utf-8').read())
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        shutil.copy(os.path.join(dir_path, 'OBS_LICENSE.md'), os.path.join(self.out_dir, 'LICENSE.md'))
 
     def chunk_chapter(self, rc, chapter_file, chapter):
         with codecs.open(chapter_file, 'r', encoding='utf-8') as in_file:
@@ -173,14 +189,9 @@ class OBSConverter(object):
                 rc.write_chunk(chapter, 'reference', reference)
                 data = self.chapter_reference_re.sub('', data).rstrip()
 
-            # chunks
-            chunks = self.image_re.split(data)
-            chunk_num = 1
-            for chunk in chunks:
-                chunk = chunk.lstrip().rstrip()
-                if chunk:
-                    rc.write_chunk(chapter, str(chunk_num).zfill(2), '!['+chunk)
-                    chunk_num += 1
+            # chunk
+            chunk = self.dir_link_re.sub('', data)
+            rc.write_chunk(chapter, '01', chunk)
 
     def download_obs_file(self, base_url, file_to_download, out_file):
 
