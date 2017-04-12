@@ -4,7 +4,7 @@ __Scripts for converting resources in Dokuwiki repositories to Resource Containe
 
 ### Requirements
 
-You should use Python 3.5.
+Python 2.7.
 
 Install dependencies:
 
