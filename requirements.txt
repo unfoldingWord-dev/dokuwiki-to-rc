@@ -1,4 +1,4 @@
 requests
 uw-tools
 obs-tools
--e git://github.com/jeremymlane/python-resource-container#egg=resource_container
+-e git://github.com/unfoldingWord-dev/python-resource-container#egg=resource_container
