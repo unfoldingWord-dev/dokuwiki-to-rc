@@ -13,4 +13,3 @@ setup(
     long_description='See http://discourse.door43.org/t/resource-containers/53/2',
     classifiers=[]
 )
-
