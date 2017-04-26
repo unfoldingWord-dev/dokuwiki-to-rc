@@ -142,7 +142,7 @@ class OBSConverter(object):
                 'checking_level': status['checking_level']
             },
             'projects': [{
-                'categories': None,
+                'categories': [],
                 'identifier': manifest.resource['slug'],
                 'path': './content',
                 'sort': 0,
