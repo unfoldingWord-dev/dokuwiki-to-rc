@@ -1,3 +1,4 @@
 requests
 uw-tools
 obs-tools
+-e git://github.com/unfoldingWord-dev/python-resource-container#egg=resource_container

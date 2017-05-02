@@ -1,8 +1,11 @@
 from __future__ import print_function, unicode_literals
+
+import codecs
 import os
 from unittest import TestCase
 import tempfile
 import shutil
+
 from converters.obs_converter import OBSConverter
 
 
@@ -21,11 +24,26 @@ class TestImportFromDokuwiki(TestCase):
                 importer.run()
 
             # check for output files
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'package.json')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_back', 'back-matter.md')))
-            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '_front', 'front-matter.md')))
+            self.assertFalse(os.path.isfile(os.path.join(out_dir, 'content', '50.md')))
+            self.assertFalse(os.path.isfile(os.path.join(out_dir, 'content', '01.md')))
+            self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_front')))
+            self.assertFalse(os.path.isdir(os.path.join(out_dir, 'content', '_back')))
+
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'manifest.yaml')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', '01.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '01', 'reference.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', '01.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', '50', 'reference.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'title.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'front', 'intro.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'content', 'back', 'intro.md')))
+            self.assertTrue(os.path.isfile(os.path.join(out_dir, 'LICENSE.md')))
+
+            self.assert_file_contents(os.path.join(out_dir, 'content', 'front', 'title.md'), 'Open Bible Stories')
+            self.assert_file_contents(os.path.join(out_dir, 'content', '01', 'title.md'), '1. The Creation')
+            self.assert_file_contents(os.path.join(out_dir, 'content', '01', 'reference.md'), 'A Bible story from: Genesis 1-2')
 
         finally:
             # delete temp files
@@ -71,3 +89,14 @@ class TestImportFromDokuwiki(TestCase):
             # delete temp files
             if os.path.isdir(out_dir):
                 shutil.rmtree(out_dir, ignore_errors=True)
+
+    def assert_file_contents(self, file, contents):
+        """
+        Asserts that a file contents the given contents
+        :param file: the file to check
+        :param contents: the expected contents
+        :return:
+        """
+        with codecs.open(file, 'r', encoding='utf-8') as in_file:
+            data = in_file.read()
+            self.assertEqual(data, contents, file+' does not contain the expected content')
