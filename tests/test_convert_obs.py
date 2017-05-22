@@ -17,7 +17,7 @@ class TestImportFromDokuwiki(TestCase):
         """
         lang = 'en'
         git_repo = 'file://' + os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources/')
-        out_dir = tempfile.mkdtemp(prefix='testOBS_')
+        out_dir = os.path.join(tempfile.mkdtemp(prefix='testOBS_'), 'rc')
 
         try:
             with OBSConverter(lang, git_repo, out_dir, False) as importer:

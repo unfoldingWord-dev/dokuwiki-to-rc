@@ -156,7 +156,9 @@ class OBSConverter(object):
         }
         if os.path.exists(self.out_dir):
             shutil.rmtree(self.out_dir)
-        os.makedirs(self.out_dir)
+        parent_dir = os.path.dirname(self.out_dir)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
 
         new_manifest = to_str(new_manifest)
 
