@@ -1,3 +1,4 @@
+tx-shared-tools==0.1.82
 requests
 uw-tools
 obs-tools
