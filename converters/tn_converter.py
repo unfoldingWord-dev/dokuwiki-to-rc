@@ -13,15 +13,6 @@ from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifes
 
 class TNConverter(object):
 
-    tag_re = re.compile(r'\{\{tag>.*?\}\}', re.UNICODE)
-    squiggly_re = re.compile(r'~~(?:DISCUSSION|NOCACHE)~~', re.UNICODE)
-    extra_blanks_re = re.compile(r'\n{3,}', re.UNICODE)
-    chapter_link_re = re.compile(r'\[\[:en:bible:questions:comprehension:(.*?):home\|(.*?)\]\]', re.UNICODE)
-    missing_blank_line_re = re.compile(r'(\n    \*.*\n)(__)', re.UNICODE)
-    story_num_re = re.compile(r'(Story )#', re.UNICODE)
-    navigate_re = re.compile(r'\[\[:en:obs:notes:questions:(.*?)\|\s*(.*?)\s*\]\]', re.UNICODE)
-    navigate2_re = re.compile(r'\[\[en/obs/notes/questions/(.*?)\|\s*(.*?)\s*\]\]', re.UNICODE)
-
     heading_re = re.compile(r'^=+', re.UNICODE)
     notes_re = re.compile(r'^ *translationNotes', re.UNICODE)
 
@@ -97,15 +88,10 @@ class TNConverter(object):
 
         # get the source files from the git repository
         bible_notes_dir = join_url_parts(self.repo_dir, 'bible/notes')
-        obs_notes_dir = join_url_parts(self.repo_dir, 'obs/notes')
 
         # build bible RC
         target_dir = os.path.join(self.out_dir, 'bible')
         self.process_bible_notes(bible_notes_dir, target_dir)
-
-        # build obs RC
-        target_dir = os.path.join(self.out_dir, 'obs')
-        self.process_obs_notes(obs_notes_dir, target_dir)
 
     def unzip_repo_file(self, repo_file, repo_dir):
         try:
@@ -135,10 +121,6 @@ class TNConverter(object):
                                 print(block)
                     except Exception as e:
                         print(e)
-
-
-    def process_obs_notes(self, source_dir, target_dir):
-        pass
 
     def read_file(file_name, encoding='utf-8'):
         with codecs.open(file_name, 'r', encoding=encoding) as f:
