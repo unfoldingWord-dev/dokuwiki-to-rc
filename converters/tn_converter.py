@@ -6,7 +6,10 @@ import tempfile
 import json
 import shutil
 import os
+import yaml
 import re
+from .unicode_utils import to_str
+from datetime import datetime
 from general_tools.file_utils import write_file, unzip
 from general_tools.url_utils import get_languages, join_url_parts, get_url, download_file
 from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder
@@ -103,7 +106,16 @@ class TNConverter(object):
 
     def process_bible_notes(self, source_dir, target_dir):
         books = next(os.walk(source_dir))[1]
+        projects = []
         for book in books:
+            projects.append({
+                'categories': [],
+                'identifier': book,
+                'path': './{}'.format(book),
+                'sort': 0,
+                'title': 'translationNotes',
+                'versification': ''
+            })
             chapters = next(os.walk(os.path.join(source_dir, book)))[1]
             for chapter in chapters:
                 chunks = next(os.walk(os.path.join(source_dir, book, chapter)))[2]
@@ -131,6 +143,55 @@ class TNConverter(object):
                             write_file(new_chunk_file, notes.strip())
                     except Exception as e:
                         print(e)
+        # write the license
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        shutil.copy(os.path.join(dir_path, 'OBS_LICENSE.md'), os.path.join(self.out_dir, 'LICENSE.md'))
+
+        # write manifest
+        new_manifest = {
+            'dublin_core': {
+                'conformsto': 'rc0.2',
+                'contributor': [
+                    'Wycliffe Associates'
+                ],
+                'creator': 'Wycliffe Associates',
+                'description': 'Notes to help translators of the Bible',
+                'format': 'text/markdown',
+                'identifier': 'tn',
+                'issued': '?',
+                'language': {
+                    'direction': self.lang_data['ld'],
+                    'identifier': self.lang_data['lc'],
+                    'title': self.lang_data['ang']
+                },
+                'modified': datetime.today().strftime('%Y-%m-%d'),
+                'publisher': 'unfoldingWord',
+                'relation': [
+                    'en/ulb',
+                    'en/udb'
+                ],
+                'rights': 'CC BY-SA 4.0',
+                'source': [{
+                    'identifier': 'tn',
+                    'language': self.lang_data['lc'],
+                    'version': '?'
+                }],
+                'subject': 'Translator Notes',
+                'title': 'translationNotes',
+                'type': 'help',
+                'version': '?'
+            },
+            'checking': {
+                'checking_entity': [
+                    'Wycliffe Associates'
+                ],
+                'checking_level': 3
+            },
+            'projects': projects
+        }
+
+        new_manifest = to_str(new_manifest)
+        write_file(os.path.join(self.out_dir, 'manifest.yaml'), yaml.dump(new_manifest, default_flow_style=False))
 
     @staticmethod
     def read_file(file_name, encoding='utf-8-sig'):
