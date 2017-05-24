@@ -16,6 +16,7 @@ class TNConverter(object):
     heading_re = re.compile(r'^=+', re.UNICODE | re.MULTILINE)
     notes_heading_re = re.compile(r'^ *translationNotes', re.UNICODE)
     notes_re = re.compile(r' *\* +\*\*([^\*]+)\*\*( +-+ +)?(.*)', re.UNICODE | re.MULTILINE)
+    general_re = re.compile(r'(General Information:?)|(Connecting Statement:?)', re.UNICODE | re.IGNORECASE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet=True, download_handler=None):
         """
@@ -91,8 +92,7 @@ class TNConverter(object):
         bible_notes_dir = join_url_parts(self.repo_dir, 'bible/notes')
 
         # build bible RC
-        target_dir = os.path.join(self.out_dir, 'bible')
-        self.process_bible_notes(bible_notes_dir, target_dir)
+        self.process_bible_notes(bible_notes_dir, self.out_dir)
 
     def unzip_repo_file(self, repo_file, repo_dir):
         try:
@@ -121,9 +121,14 @@ class TNConverter(object):
                                 if chunk == '00.txt':
                                     print('WARNING: processing chunk 00')
                                 for note in TNConverter.notes_re.finditer(block):
+                                    # if TNConverter.general_re.match(note.group(1)) != None and note != '':
+                                    #     print('writing general info for {}/{}/{}'.format(book, chapter, chunk))
+                                    #     notes += '{}\n\n'.format(note.group(3).strip())
+                                    # else:
                                     notes += '# {}\n\n{}\n\n'.format(note.group(1).strip(), note.group(3).strip())
-                        new_chunk_file = os.path.join(target_dir, chapter, chunk.replace('.txt', '.md'))
-                        write_file(new_chunk_file, notes.strip())
+                        new_chunk_file = os.path.join(target_dir, book, chapter, chunk.replace('.txt', '.md'))
+                        if notes.strip() != '':
+                            write_file(new_chunk_file, notes.strip())
                     except Exception as e:
                         print(e)
 
