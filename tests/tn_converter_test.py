@@ -30,15 +30,15 @@ class TestConvertTN(TestCase):
                 importer.run()
 
                 # test output
-                self.assertFalse(os.path.isfile(os.path.join(out_dir, 'gen', '01', '00.md')))
-                self.assertFalse(os.path.exists(os.path.join(out_dir, 'gen', '00.md')))
-                self.assertFalse(os.path.isfile(os.path.join(out_dir, 'gen', '01.md')))
+                self.assertFalse(os.path.isfile(os.path.join(out_dir, '1ch', '01', '00.md')))
+                self.assertFalse(os.path.exists(os.path.join(out_dir, '1ch', '00.md')))
+                self.assertFalse(os.path.isfile(os.path.join(out_dir, '1ch', '01.md')))
 
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, 'manifest.yaml')))
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, 'LICENSE.md')))
 
-                self.assertTrue(os.path.isfile(os.path.join(out_dir, 'gen', '01', '01.md')))
-                self.assertTrue(os.path.isfile(os.path.join(out_dir, 'gen', '01', '03.md')))
+                self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', '01.md')))
+                self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', '05.md')))
 
         finally:
             # cleanup
