@@ -13,8 +13,9 @@ from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifes
 
 class TNConverter(object):
 
-    heading_re = re.compile(r'^=+', re.UNICODE)
-    notes_re = re.compile(r'^ *translationNotes', re.UNICODE)
+    heading_re = re.compile(r'^=+', re.UNICODE | re.MULTILINE)
+    notes_heading_re = re.compile(r'^ *translationNotes', re.UNICODE)
+    notes_re = re.compile(r' *\* +\*\*([^\*]+)\*\*( +-+ +)?(.*)', re.UNICODE | re.MULTILINE)
 
     def __init__(self, lang_code, git_repo, out_dir, quiet=True, download_handler=None):
         """
@@ -105,23 +106,28 @@ class TNConverter(object):
         for book in books:
             chapters = next(os.walk(os.path.join(source_dir, book)))[1]
             for chapter in chapters:
-                if chapter == '00':
-                    print('WARNING: processing chapter 00')
                 chunks = next(os.walk(os.path.join(source_dir, book, chapter)))[2]
                 for chunk in chunks:
-                    if chunk == '00.txt':
-                        print('WARNING: processing chunk 00')
                     # parse notes
                     chunk_file = os.path.join(source_dir, book, chapter, chunk)
                     try:
-                        content = self.read_file(chunk_file)
+                        content = TNConverter.read_file(chunk_file)
                         blocks = TNConverter.heading_re.split(content)
+                        notes = ''
                         for block in blocks:
-                            if TNConverter.notes_re.match(block):
-                                print(block)
+                            if TNConverter.notes_heading_re.match(block):
+                                if chapter == '00':
+                                    print('WARNING: processing chapter 00')
+                                if chunk == '00.txt':
+                                    print('WARNING: processing chunk 00')
+                                for note in TNConverter.notes_re.finditer(block):
+                                    notes += '# {}\n\n{}\n\n'.format(note.group(1).strip(), note.group(3).strip())
+                        new_chunk_file = os.path.join(target_dir, chapter, chunk.replace('.txt', '.md'))
+                        write_file(new_chunk_file, notes.strip())
                     except Exception as e:
                         print(e)
 
-    def read_file(file_name, encoding='utf-8'):
+    @staticmethod
+    def read_file(file_name, encoding='utf-8-sig'):
         with codecs.open(file_name, 'r', encoding=encoding) as f:
             return f.read()
