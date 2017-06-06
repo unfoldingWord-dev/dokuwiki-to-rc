@@ -60,7 +60,7 @@ class TNConverter(object):
         if not self.lang_data:
             raise Exception('Information for language "{0}" was not found.'.format(lang_code))
 
-        lang_code = self.lang_data['lc']
+        self.lang_code = self.lang_data['lc'].lower()
 
         # remove trailing slash
         if self.git_repo[-1:] == '/':
@@ -69,7 +69,7 @@ class TNConverter(object):
         self.temp_dir = tempfile.mkdtemp('', 'tn', None)
         self.repo_file = os.path.join(self.temp_dir, 'tn.zip')
         # tricky: github gives lowercase dir names in zip archive
-        self.repo_dir = os.path.join(self.temp_dir, 'd43-{}-master'.format(lang_code.lower()))
+        self.repo_dir = os.path.join(self.temp_dir, 'd43-{}-master'.format(self.lang_code))
         self.repo_zip_url = join_url_parts(self.git_repo, 'archive/master.zip')
 
     def __enter__(self):
@@ -202,10 +202,10 @@ class TNConverter(object):
         return text
 
     def format_titled_ta_link(self, book, chapter, chunk, match):
-        return '[{}](/en/ta/{}/{})'.format(match.group(4), match.group(2), match.group(3))
+        return '[{}](/en/ta/{}/{})'.format(match.group(4), match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
 
     def format_ta_link(self, book, chapter, chunk, match):
-        return '[[/en/ta/{}/{}]]'.format(match.group(2), match.group(3))
+        return '[[/en/ta/{}/{}]]'.format(match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
 
     def format_titled_note_link(self, book, chapter, chunk, match):
         bookTitle = match.group(1) # get title
