@@ -52,12 +52,6 @@ class TNConverter(object):
         if not self.lang_data:
             raise Exception('Information for language "{0}" was not found.'.format(lang_code))
 
-        # read the github access token
-        root_dir = os.path.dirname(os.path.dirname(inspect.stack()[0][1]))
-        with codecs.open(os.path.join(root_dir, 'github_api_token'), 'r', 'utf-8-sig') as in_file:
-            # read the text from the file
-            self.access_token = in_file.read()
-
         lang_code = self.lang_data['lc']
 
         # remove trailing slash
