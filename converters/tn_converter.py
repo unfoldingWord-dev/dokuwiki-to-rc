@@ -21,6 +21,14 @@ class TNConverter(object):
     notes_re = re.compile(r' *\* +\*\*([^\*]+)\*\*( +-+ +)?(.*)', re.UNICODE | re.MULTILINE)
     general_re = re.compile(r'(General Information:?)|(Connecting Statement:?)', re.UNICODE | re.IGNORECASE)
 
+    link_tag_re = re.compile(r'\[\[\:(((?!\[|\]).)*)\]\]', re.UNICODE)
+
+    link_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\]\]', re.UNICODE | re.IGNORECASE)
+    link_titled_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\|\s*([\d\-\: \w,\.]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\: \w,\.\/]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+
+
     def __init__(self, lang_code, git_repo, out_dir, quiet=True, download_handler=None):
         """
         
@@ -127,11 +135,8 @@ class TNConverter(object):
                                 if chunk == '00.txt':
                                     print('WARNING: processing chunk 00')
                                 for note in TNConverter.notes_re.finditer(block):
-                                    # if TNConverter.general_re.match(note.group(1)) != None and note != '':
-                                    #     print('writing general info for {}/{}/{}'.format(book, chapter, chunk))
-                                    #     notes += '{}\n\n'.format(note.group(3).strip())
-                                    # else:
-                                    notes += '# {}\n\n{}\n\n'.format(note.group(1).strip(), note.group(3).strip())
+                                    note_body = self.process_links(book, chapter, chunk.split('.')[0], note.group(3).strip())
+                                    notes += '# {}\n\n{}\n\n'.format(note.group(1).strip(), note_body)
                         new_chunk_file = os.path.join(target_dir, book, chapter, chunk.replace('.txt', '.md'))
                         if notes.strip() != '':
                             write_file(new_chunk_file, notes.strip())
@@ -186,6 +191,45 @@ class TNConverter(object):
 
         new_manifest = to_str(new_manifest)
         write_file(os.path.join(self.out_dir, 'manifest.yaml'), yaml.dump(new_manifest, default_flow_style=False))
+
+    def process_links(self, book, chapter, chunk, text):
+        text = re.sub(self.link_titled_ta_re, lambda m: self.format_titled_ta_link(book, chapter, chunk, m), text)
+        text = re.sub(self.link_ta_re, lambda m: self.format_ta_link(book, chapter, chunk, m), text)
+        text = re.sub(self.link_titled_notes_re, lambda m: self.format_titled_note_link(book, chapter, chunk, m), text)
+        text = re.sub(self.link_notes_re, lambda m: self.format_note_link(book, chapter, chunk, m), text)
+        if self.link_tag_re.search(text):
+            print('ERROR: Unknown link at {}/{}/{}: {}'.format(book, chapter, chunk, text))
+        return text
+
+    def format_titled_ta_link(self, book, chapter, chunk, match):
+        return '[{}](/en/ta/{}/{})'.format(match.group(4), match.group(2), match.group(3))
+
+    def format_ta_link(self, book, chapter, chunk, match):
+        return '[[/en/ta/{}/{}]]'.format(match.group(2), match.group(3))
+
+    def format_titled_note_link(self, book, chapter, chunk, match):
+        bookTitle = match.group(1) # get title
+        if book == match.group(1):
+            if chapter == match.group(2):
+                return '[{} {}](./{}.md)'.format(bookTitle, match.group(4), match.group(3))
+            else:
+                return '[{} {}](../{}/{}.md)'.format(bookTitle, match.group(4), match.group(2), match.group(3))
+        else:
+            print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
+            return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, match.group(4), match.group(1), match.group(2), match.group(3))
+
+    def format_note_link(self, book, chapter, chunk, match):
+        bookTitle = match.group(1) # get title
+        verseTitle = '{}:{}'.format(int(match.group(2)), int(match.group(3)))
+        if book == match.group(1):
+            if chapter == match.group(2):
+                return '[{} {}](./{}.md)'.format(bookTitle, verseTitle, match.group(3))
+            else:
+                return '[{} {}](../{}/{}.md)'.format(bookTitle, verseTitle, match.group(2), match.group(3))
+        else:
+            print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
+            return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, verseTitle, match.group(1), match.group(2), match.group(3))
+
 
     @staticmethod
     def read_file(file_name, encoding='utf-8-sig'):
