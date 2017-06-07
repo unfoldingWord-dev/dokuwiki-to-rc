@@ -12,7 +12,7 @@ from .unicode_utils import to_str
 from datetime import datetime
 from general_tools.file_utils import write_file, unzip
 from general_tools.url_utils import get_languages, join_url_parts, get_url, download_file
-from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder
+from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder, en_book_names
 
 class TNConverter(object):
 
@@ -115,7 +115,7 @@ class TNConverter(object):
                 'identifier': book,
                 'path': './{}'.format(book),
                 'sort': 0,
-                'title': 'translationNotes',
+                'title': '{} translationNotes'.format(en_book_names[book]),
                 'versification': ''
             })
             chapters = next(os.walk(os.path.join(source_dir, book)))[1]
@@ -208,7 +208,7 @@ class TNConverter(object):
         return '[[/en/ta/{}/{}]]'.format(match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
 
     def format_titled_note_link(self, book, chapter, chunk, match):
-        bookTitle = match.group(1) # get title
+        bookTitle = en_book_names[match.group(1)]
         if book == match.group(1):
             if chapter == match.group(2):
                 return '[{} {}](./{}.md)'.format(bookTitle, match.group(4), match.group(3))
@@ -219,7 +219,7 @@ class TNConverter(object):
             return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, match.group(4), match.group(1), match.group(2), match.group(3))
 
     def format_note_link(self, book, chapter, chunk, match):
-        bookTitle = match.group(1) # get title
+        bookTitle = en_book_names[match.group(1)]
         verseTitle = '{}:{}'.format(int(match.group(2)), int(match.group(3)))
         if book == match.group(1):
             if chapter == match.group(2):
