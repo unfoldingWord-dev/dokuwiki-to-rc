@@ -40,6 +40,14 @@ class TestConvertTN(TestCase):
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', '01.md')))
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', '05.md')))
 
+                self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', 'intro.md')))
+
+                genera_notes = TNConverter.read_file(os.path.join(out_dir, '1jn', '03', 'intro.md'))
+                self.assertNotIn(':en:obe:kt:faith', genera_notes)
+                self.assertIn('/en/tw/dict/bible/kt/faith', genera_notes)
+
+                self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', 'front', 'intro.md')))
+
         finally:
             # cleanup
             if( os.path.exists(out_dir)):

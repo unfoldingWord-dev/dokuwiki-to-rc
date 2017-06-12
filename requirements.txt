@@ -1,4 +1,4 @@
-tx-shared-tools==0.1.82
+tx-manager
 requests
 uw-tools
 obs-tools
