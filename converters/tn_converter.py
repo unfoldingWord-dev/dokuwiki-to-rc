@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import print_function, unicode_literals
 
 import codecs
@@ -24,11 +26,11 @@ class TNConverter(object):
     link_tag_re = re.compile(r'\[\[\:(((?!\[|\]).)*)\]\]', re.UNICODE)
 
     link_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\]\]', re.UNICODE | re.IGNORECASE)
-    link_titled_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\|\s*([\d\-\: \w,\.]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
-    link_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_titled_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\|\s*([\d\-\–\: \w,\.]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:\:?(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\–\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
     link_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
     link_words_re = re.compile(r'\[\[\:?\:en\:obe\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
-    link_titled_bible_re = re.compile(r'\[\[\:?\:en\:bible\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_broken_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\–\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
 
 
     def __init__(self, lang_code, git_repo, out_dir, quiet=True, download_handler=None):
@@ -127,7 +129,7 @@ class TNConverter(object):
                     book_chunk_file = os.path.join(source_dir, book, chapter, 'intro.txt')
                     if os.path.exists(book_chunk_file):
                         content = dokuwiki_to_markdown(TNConverter.read_file(book_chunk_file))
-                        content = self.process_links(book, chapter, '00', content)
+                        content = self.process_links(book, chapter, 'intro', content)
                         new_book_intro_file = os.path.join(target_dir, book, 'front', 'intro.md')
                         content = self.clean_intro(content)
                         if content.strip() != '':
@@ -232,14 +234,14 @@ class TNConverter(object):
         text = re.sub(self.link_titled_notes_re, lambda m: self.format_titled_note_link(book, chapter, chunk, m), text)
         text = re.sub(self.link_notes_re, lambda m: self.format_note_link(book, chapter, chunk, m), text)
         text = re.sub(self.link_words_re, lambda m: self.format_word_link(m), text)
-        text = re.sub(self.link_titled_bible_re, lambda m: self.format_titled_bible_link(m), text)
+        text = re.sub(self.link_broken_titled_notes_re, lambda m: self.format_titled_note_link(book, chapter, chunk, m), text)
 
         if self.link_tag_re.search(text):
             print('ERROR: Unknown link at {}/{}/{}: {}'.format(book, chapter, chunk, text))
         return text
 
-    def format_titled_bible_link(self, match):
-        return '[{}](/en/ulb/book/{}/{}/{})'.format(match.group(4), match.group(1), match.group(2), match.group(3))
+    # def format_titled_bible_link(self, match):
+    #     return '[{}](/en/ulb/book/{}/{}/{})'.format(match.group(4), match.group(1), match.group(2), match.group(3))
 
     def format_word_link(self, match):
         if(match.group(1) == 'kt'):
