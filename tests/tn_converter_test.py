@@ -42,12 +42,18 @@ class TestConvertTN(TestCase):
 
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', 'intro.md')))
 
-                general_notes = TNConverter.read_file(os.path.join(out_dir, '1jn', '03', 'intro.md'))
-                self.assertNotIn(':en:obe:kt:faith', general_notes)
-                self.assertNotIn('00.md', general_notes)
-                self.assertIn('/en/tw/dict/bible/kt/faith', general_notes)
+                chapter_intro = TNConverter.read_file(os.path.join(out_dir, '1jn', '03', 'intro.md'))
+                self.assertNotIn(':en:obe:kt:faith', chapter_intro)
+                self.assertNotIn('00.md', chapter_intro)
+                self.assertIn('/en/tw/dict/bible/kt/faith', chapter_intro)
 
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', 'front', 'intro.md')))
+
+                front_intro = TNConverter.read_file(os.path.join(out_dir, '1ch', 'front', 'intro.md'))
+                self.assertNotIn(':en:ta:vol1:translate:figs_metaphor', front_intro)
+                self.assertNotIn(':en:obe:kt:covenant', front_intro)
+                self.assertIn('/en/ta/man/translate/figs-metaphor', front_intro)
+                self.assertIn('/en/tw/dict/bible/kt/covenant', front_intro)
 
         finally:
             # cleanup

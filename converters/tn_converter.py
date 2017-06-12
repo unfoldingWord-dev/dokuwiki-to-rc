@@ -127,6 +127,7 @@ class TNConverter(object):
                     book_chunk_file = os.path.join(source_dir, book, chapter, 'intro.txt')
                     if os.path.exists(book_chunk_file):
                         content = dokuwiki_to_markdown(TNConverter.read_file(book_chunk_file))
+                        content = self.process_links(book, chapter, '00', content)
                         new_book_intro_file = os.path.join(target_dir, book, 'front', 'intro.md')
                         content = self.clean_intro(content)
                         if content.strip() != '':
