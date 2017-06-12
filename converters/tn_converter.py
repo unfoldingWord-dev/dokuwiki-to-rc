@@ -28,6 +28,7 @@ class TNConverter(object):
     link_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
     link_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
     link_words_re = re.compile(r'\[\[\:?\:en\:obe\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_titled_bible_re = re.compile(r'\[\[\:?\:en\:bible\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
 
 
     def __init__(self, lang_code, git_repo, out_dir, quiet=True, download_handler=None):
@@ -227,19 +228,17 @@ class TNConverter(object):
     def process_links(self, book, chapter, chunk, text):
         text = re.sub(self.link_titled_ta_re, lambda m: self.format_titled_ta_link(m), text)
         text = re.sub(self.link_ta_re, lambda m: self.format_ta_link(m), text)
-        try:
-            text = re.sub(self.link_titled_notes_re, lambda m: self.format_titled_note_link(book, chapter, chunk, m), text)
-            text = re.sub(self.link_notes_re, lambda m: self.format_note_link(book, chapter, chunk, m), text)
-        except Exception as e:
-            print('Failed to parse note links: {}'.format(e))
-        try:
-            text = re.sub(self.link_words_re, lambda m: self.format_word_link(m), text)
-        except Exception as e:
-            print('Failed to parse word links: {}'.format(e))
+        text = re.sub(self.link_titled_notes_re, lambda m: self.format_titled_note_link(book, chapter, chunk, m), text)
+        text = re.sub(self.link_notes_re, lambda m: self.format_note_link(book, chapter, chunk, m), text)
+        text = re.sub(self.link_words_re, lambda m: self.format_word_link(m), text)
+        text = re.sub(self.link_titled_bible_re, lambda m: self.format_titled_bible_link(m), text)
 
         if self.link_tag_re.search(text):
             print('ERROR: Unknown link at {}/{}/{}: {}'.format(book, chapter, chunk, text))
         return text
+
+    def format_titled_bible_link(self, match):
+        return '[{}](/en/ulb/book/{}/{}/{})'.format(match.group(4), match.group(1), match.group(2), match.group(3))
 
     def format_word_link(self, match):
         if(match.group(1) == 'kt'):
@@ -262,14 +261,18 @@ class TNConverter(object):
         else:
             title = '{} {}'.format(bookTitle, match.group(4))
 
+        link_chunk = match.group(3)
+        if link_chunk == '00':
+            link_chunk = 'intro'
+
         if book == match.group(1):
             if chapter == match.group(2):
-                return '[{}](./{}.md)'.format(title, match.group(3))
+                return '[{}](./{}.md)'.format(title, link_chunk)
             else:
-                return '[{}](../{}/{}.md)'.format(title, match.group(2), match.group(3))
+                return '[{}](../{}/{}.md)'.format(title, match.group(2), link_chunk)
         else:
             print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
-            return '[{}](../../{}/{}/{}.md)'.format(title, match.group(1), match.group(2), match.group(3))
+            return '[{}](../../{}/{}/{}.md)'.format(title, match.group(1), match.group(2), link_chunk)
 
     def format_note_link(self, book, chapter, chunk, match):
         bookTitle = en_book_names[match.group(1)]
@@ -279,14 +282,18 @@ class TNConverter(object):
             # parse verse int
             verseTitle = '{}:{}'.format(int(match.group(2)), match.group(3))
 
+        link_chunk = match.group(3)
+        if link_chunk == '00':
+            link_chunk = 'intro'
+
         if book == match.group(1):
             if chapter == match.group(2):
-                return '[{} {}](./{}.md)'.format(bookTitle, verseTitle, match.group(3))
+                return '[{} {}](./{}.md)'.format(bookTitle, verseTitle, link_chunk)
             else:
-                return '[{} {}](../{}/{}.md)'.format(bookTitle, verseTitle, match.group(2), match.group(3))
+                return '[{} {}](../{}/{}.md)'.format(bookTitle, verseTitle, match.group(2), link_chunk)
         else:
             print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
-            return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, verseTitle, match.group(1), match.group(2), match.group(3))
+            return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, verseTitle, match.group(1), match.group(2), link_chunk)
 
     @staticmethod
     def read_file(file_name, encoding='utf-8-sig'):
