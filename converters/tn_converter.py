@@ -27,10 +27,10 @@ class TNConverter(object):
 
     link_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\]\]', re.UNICODE | re.IGNORECASE)
     link_titled_ta_re = re.compile(r'\[\[\:*\:en\:*\:ta\:*\:vol(1|2)\s*\:*\:\s*(\w+)\s*\:*\:\s*(\w+)\|\s*([\d\-\–\: \w,\.]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
-    link_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:\:?(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\–\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
-    link_notes_re = re.compile(r'\[\[\:?\:en\:bible\:notes\:(\w+)\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
-    link_words_re = re.compile(r'\[\[\:?\:en\:obe\:(\w+)\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
-    link_broken_titled_notes_re = re.compile(r'\[\[\:?\:en\:bible\:(\w+)\:(\w+)\:(\w+)\s*\|\s*([\d\-\–\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_titled_notes_re = re.compile(r'\[\[\:*\:en\:bible\:*\:notes\:*\:(\w+)\:*\:(\w+)\:*\:(\w+)\s*\|\s*([\d\-\–\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_notes_re = re.compile(r'\[\[\:*\:en\:*\:bible\:*\:notes\:*\:(\w+)\:*\:(\w+)\:*\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_words_re = re.compile(r'\[\[\:*\:en\:*\:obe\:*\:(\w+)\:*\:(\w+)\s*\]\]', re.UNICODE | re.IGNORECASE)
+    link_broken_titled_notes_re = re.compile(r'\[\[\:*\:en\:*\:bible\:*\:(\w+)\:*\:(\w+)\:*\:(\w+)\s*\|\s*([\d\-\–\: \w,\.\/<>]+)\s*\]\]', re.UNICODE | re.IGNORECASE)
 
 
     def __init__(self, lang_code, git_repo, out_dir, quiet=True, download_handler=None):

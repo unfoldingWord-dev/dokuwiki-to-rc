@@ -60,6 +60,11 @@ class TestConvertTN(TestCase):
                 self.assertIn('/en/ta/man/translate/figs-metaphor', front_intro)
                 self.assertIn('/en/tw/dict/bible/kt/covenant', front_intro)
 
+
+                psa_chapter_one_intro = TNConverter.read_file(os.path.join(out_dir, 'psa', '001', 'intro.md'))
+                self.assertNotIn('[[:en::obe:kt:evil]]', psa_chapter_one_intro)
+                self.assertIn('[[rc://en/tw/dict/bible/kt/evil]]', psa_chapter_one_intro)
+
         finally:
             # cleanup
             if( os.path.exists(out_dir)):
