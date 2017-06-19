@@ -245,15 +245,15 @@ class TNConverter(object):
 
     def format_word_link(self, match):
         if(match.group(1) == 'kt'):
-            return '[[/en/tw/dict/bible/kt/{}]]'.format(match.group(2))
+            return '[[rc://en/tw/dict/bible/kt/{}]]'.format(match.group(2))
         else:
-            return '[[/en/tw/dict/bible/other/{}]]'.format(match.group(2))
+            return '[[rc://en/tw/dict/bible/other/{}]]'.format(match.group(2))
 
     def format_titled_ta_link(self, match):
-        return '[{}](/en/ta/man/{}/{})'.format(match.group(4), match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
+        return '[{}](rc://en/ta/man/{}/{})'.format(match.group(4), match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
 
     def format_ta_link(self, match):
-        return '[[/en/ta/man/{}/{}]]'.format(match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
+        return '[[rc://en/ta/man/{}/{}]]'.format(match.group(2).replace('_', '-'), match.group(3).replace('_', '-'))
 
     def format_titled_note_link(self, book, chapter, chunk, match):
         bookTitle = en_book_names[match.group(1)]
