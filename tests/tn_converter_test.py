@@ -54,6 +54,7 @@ class TestConvertTN(TestCase):
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', 'front', 'intro.md')))
 
                 front_intro = TNConverter.read_file(os.path.join(out_dir, '1ch', 'front', 'intro.md'))
+                self.assertIn('[[rc://en/ta/man/translate/figs-metaphor]]', front_intro)
                 self.assertNotIn(':en:ta:vol1:translate:figs_metaphor', front_intro)
                 self.assertNotIn(':en:obe:kt:covenant', front_intro)
                 self.assertIn('/en/ta/man/translate/figs-metaphor', front_intro)
