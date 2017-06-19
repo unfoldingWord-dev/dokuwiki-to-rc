@@ -124,7 +124,7 @@ class TNConverter(object):
             })
             chapters = next(os.walk(os.path.join(source_dir, book)))[1]
             for chapter in chapters:
-                if chapter == '00':
+                if chapter == '00' or chapter == '000':
                     # write book intro file
                     book_chunk_file = os.path.join(source_dir, book, chapter, 'intro.txt')
                     if os.path.exists(book_chunk_file):
@@ -140,7 +140,7 @@ class TNConverter(object):
                 for chunk in chunks:
                     chunk_file = os.path.join(source_dir, book, chapter, chunk)
                     try:
-                        if chunk == '00.txt':
+                        if chunk == '00.txt' or chunk == '000.txt':
                             # write chapter intro file
                             content = dokuwiki_to_markdown(TNConverter.read_file(chunk_file))
                             content = self.process_links(book, chapter, chunk.split('.')[0], content)
@@ -155,9 +155,9 @@ class TNConverter(object):
                             notes = ''
                             for block in blocks:
                                 if TNConverter.notes_heading_re.match(block):
-                                    if chapter == '00':
+                                    if chapter == '00' or chapter == '000':
                                         print('WARNING: processing chapter 00')
-                                    if chunk == '00.txt':
+                                    if chunk == '00.txt' == '000.txt':
                                         print('WARNING: processing chunk 00')
                                     for note in TNConverter.notes_re.finditer(block):
                                         note_body = self.process_links(book, chapter, chunk.split('.')[0], note.group(3).strip())
@@ -257,6 +257,12 @@ class TNConverter(object):
 
     def format_titled_note_link(self, book, chapter, chunk, match):
         bookTitle = en_book_names[match.group(1)]
+        match_chapter = match.group(2)
+        if match_chapter == '00' or match_chapter == '000':
+            match_chapter = 'front'
+        match_chunk = match.group(3)
+        if match_chunk == '00' or match_chunk == '000':
+            match_chunk = 'intro'
 
         if '<<' in  match.group(4) or '>>' in match.group(4)\
                 or bookTitle in match.group(4):
@@ -264,39 +270,56 @@ class TNConverter(object):
         else:
             title = '{} {}'.format(bookTitle, match.group(4))
 
-        link_chunk = match.group(3)
-        if link_chunk == '00':
-            link_chunk = 'intro'
-
         if book == match.group(1):
-            if chapter == match.group(2):
-                return '[{}](./{}.md)'.format(title, link_chunk)
+            if chapter == match_chapter:
+                return '[{}](./{}.md)'.format(title, match_chunk)
             else:
-                return '[{}](../{}/{}.md)'.format(title, match.group(2), link_chunk)
+                return '[{}](../{}/{}.md)'.format(title, match_chapter, match_chunk)
         else:
             print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
-            return '[{}](../../{}/{}/{}.md)'.format(title, match.group(1), match.group(2), link_chunk)
+            return '[{}](../../{}/{}/{}.md)'.format(title, match.group(1), match_chapter, match_chunk)
 
     def format_note_link(self, book, chapter, chunk, match):
         bookTitle = en_book_names[match.group(1)]
-        try:
-            verseTitle = '{}:{}'.format(int(match.group(2)), int(match.group(3)))
-        except:
-            # parse verse int
-            verseTitle = '{}:{}'.format(int(match.group(2)), match.group(3))
+        match_chapter = match.group(2)
+        if match_chapter == '00' or match_chapter == '000':
+            match_chapter = 'front'
+            match_chapter_formatted = match_chapter
+        else:
+            match_chapter_formatted = self.format_number(match_chapter)
 
-        link_chunk = match.group(3)
-        if link_chunk == '00':
-            link_chunk = 'intro'
+        match_chunk = match.group(3)
+        if match_chunk == '00' or match_chunk == '000':
+            match_chunk = 'intro'
+            match_chunk_formatted = match_chunk
+        else:
+            match_chunk_formatted = self.format_number(match_chunk)
+
+        if match_chapter == 'front':
+            verseTitle = '{}'.format(match_chunk_formatted)
+        else:
+            verseTitle = '{}:{}'.format(match_chapter_formatted, match_chunk_formatted)
 
         if book == match.group(1):
-            if chapter == match.group(2):
-                return '[{} {}](./{}.md)'.format(bookTitle, verseTitle, link_chunk)
+            if chapter == match_chapter:
+                return '[{} {}](./{}.md)'.format(bookTitle, verseTitle, match_chunk)
             else:
-                return '[{} {}](../{}/{}.md)'.format(bookTitle, verseTitle, match.group(2), link_chunk)
+                return '[{} {}](../{}/{}.md)'.format(bookTitle, verseTitle, match_chapter, match_chunk)
         else:
             print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
-            return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, verseTitle, match.group(1), match.group(2), link_chunk)
+            return '[{} {}](../../{}/{}/{}.md)'.format(bookTitle, verseTitle, match.group(1), match_chapter, match_chunk)
+
+    def format_number(self, str):
+        """
+        Attempts to format a string as an integer.
+        if it fails the string will be returned
+        :param str:
+        :return:
+        """
+        try:
+            return int(str)
+        except:
+            return str.strip()
 
     @staticmethod
     def read_file(file_name, encoding='utf-8-sig'):

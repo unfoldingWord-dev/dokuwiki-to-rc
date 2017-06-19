@@ -42,10 +42,14 @@ class TestConvertTN(TestCase):
 
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', '01', 'intro.md')))
 
-                chapter_intro = TNConverter.read_file(os.path.join(out_dir, '1jn', '03', 'intro.md'))
-                self.assertNotIn(':en:obe:kt:faith', chapter_intro)
-                self.assertNotIn('00.md', chapter_intro)
-                self.assertIn('/en/tw/dict/bible/kt/faith', chapter_intro)
+                chapter_three_intro = TNConverter.read_file(os.path.join(out_dir, '1jn', '03', 'intro.md'))
+                self.assertNotIn(':en:obe:kt:faith', chapter_three_intro)
+                self.assertNotIn('00.md', chapter_three_intro)
+                self.assertIn('/en/tw/dict/bible/kt/faith', chapter_three_intro)
+
+                chapter_one_intro = TNConverter.read_file(os.path.join(out_dir, '1jn', '01', 'intro.md'))
+                self.assertNotIn('../00/intro.md', chapter_one_intro)
+                self.assertIn('../front/intro.md', chapter_one_intro)
 
                 self.assertTrue(os.path.isfile(os.path.join(out_dir, '1ch', 'front', 'intro.md')))
 
