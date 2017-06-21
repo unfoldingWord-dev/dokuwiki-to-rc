@@ -3,3 +3,4 @@ requests
 uw-tools
 obs-tools
 resource_container
+PyYAML==3.12

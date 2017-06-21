@@ -5,8 +5,8 @@ import inspect
 import json
 import os
 import re
-from general_tools.file_utils import write_file
-from general_tools.url_utils import get_languages, join_url_parts, get_url
+from file_utils import write_file
+from url_utils import get_languages, join_url_parts, get_url
 from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder
 
 

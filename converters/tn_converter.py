@@ -12,8 +12,8 @@ import yaml
 import re
 from .unicode_utils import to_str
 from datetime import datetime
-from general_tools.file_utils import write_file, unzip
-from general_tools.url_utils import get_languages, join_url_parts, get_url, download_file
+from file_utils import write_file, unzip
+from url_utils import get_languages, join_url_parts, get_url, download_file
 from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder, en_book_names
 
 class TNConverter(object):
