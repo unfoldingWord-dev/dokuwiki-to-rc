@@ -20,6 +20,7 @@ class TNConverter(object):
 
     heading_re = re.compile(r'^=+', re.UNICODE | re.MULTILINE)
     notes_heading_re = re.compile(r'^ *translationNotes', re.UNICODE)
+    words_heading_re = re.compile(r'^ *translationWords', re.UNICODE)
     notes_re = re.compile(r' *\* +\*\*([^\*]+)\*\*( +-+ +)?(.*)', re.UNICODE | re.MULTILINE)
     general_re = re.compile(r'(General Information:?)|(Connecting Statement:?)', re.UNICODE | re.IGNORECASE)
 
@@ -153,6 +154,7 @@ class TNConverter(object):
                             content = TNConverter.read_file(chunk_file)
                             blocks = TNConverter.heading_re.split(content)
                             notes = ''
+                            words = ''
                             for block in blocks:
                                 if TNConverter.notes_heading_re.match(block):
                                     if chapter == '00' or chapter == '000':
@@ -162,8 +164,14 @@ class TNConverter(object):
                                     for note in TNConverter.notes_re.finditer(block):
                                         note_body = self.process_links(book, chapter, chunk.split('.')[0], note.group(3).strip())
                                         notes += '# {}\n\n{}\n\n'.format(note.group(1).strip(), note_body)
+                                elif TNConverter.words_heading_re.match(block):
+                                    for link in TNConverter.link_words_re.finditer(block):
+                                        words = words + '\n* [[rc://en/tw/dict/bible/{}/{}]]'.format(link.group(1), link.group(2))
+
                             new_chunk_file = os.path.join(target_dir, book, chapter, chunk.replace('.txt', '.md'))
                             if notes.strip() != '':
+                                if words:
+                                    notes = '{}\n\n# translationWords\n\n{}'.format(notes.strip(), words.strip())
                                 write_file(new_chunk_file, notes.strip())
                     except Exception as e:
                         print('ERROR: {}/{}/{}: {}'.format(book, chapter, chunk, e))
