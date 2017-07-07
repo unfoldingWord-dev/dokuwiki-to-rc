@@ -170,9 +170,15 @@ class TNConverter(object):
 
                             new_chunk_file = os.path.join(target_dir, book, chapter, chunk.replace('.txt', '.md'))
                             if notes.strip() != '':
-                                if words:
+                                if words.strip():
                                     notes = '{}\n\n# translationWords\n\n{}'.format(notes.strip(), words.strip())
                                 write_file(new_chunk_file, notes.strip())
+                            elif words.strip() != '':
+                                # TRICKY: write tW even if there are no notes
+                                print('found tW without notes')
+                                notes = '{}\n\n# translationWords\n\n{}'.format(notes.strip(), words.strip())
+                                write_file(new_chunk_file, notes.strip())
+
                     except Exception as e:
                         print('ERROR: {}/{}/{}: {}'.format(book, chapter, chunk, e))
         # write the license
