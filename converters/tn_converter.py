@@ -18,7 +18,7 @@ from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifes
 
 class TNConverter(object):
 
-    heading_re = re.compile(r'^=+', re.UNICODE | re.MULTILINE)
+    heading_re = re.compile(r'^\s*=+', re.UNICODE | re.MULTILINE)
     notes_heading_re = re.compile(r'^ *translationNotes', re.UNICODE)
     words_heading_re = re.compile(r'^ *translationWords', re.UNICODE)
     notes_re = re.compile(r' *\* +\*\*([^\*]+)\*\*( +-+ +)?(.*)', re.UNICODE | re.MULTILINE)
@@ -150,13 +150,17 @@ class TNConverter(object):
                             if content.strip() != '':
                                 write_file(new_intro_file, content.strip())
                         else:
+                            if chapter == '16' and chunk == '19.txt':
+                                pass
                             # parse chunk notes
                             content = TNConverter.read_file(chunk_file)
                             blocks = TNConverter.heading_re.split(content)
                             notes = ''
                             words = ''
+                            foundNotesBlock = False
                             for block in blocks:
                                 if TNConverter.notes_heading_re.match(block):
+                                    foundNotesBlock = True
                                     if chapter == '00' or chapter == '000':
                                         print('WARNING: processing chapter 00')
                                     if chunk == '00.txt' == '000.txt':
@@ -168,6 +172,9 @@ class TNConverter(object):
                                     for link in TNConverter.link_words_re.finditer(block):
                                         words = words + '\n* [[rc://en/tw/dict/bible/{}/{}]]'.format(link.group(1), link.group(2))
 
+                            if not foundNotesBlock:
+                                print('WARNING: could not find notes block in {}'.format(chunk_file))
+
                             new_chunk_file = os.path.join(target_dir, book, chapter, chunk.replace('.txt', '.md'))
                             if notes.strip() != '':
                                 if words.strip():
@@ -175,9 +182,11 @@ class TNConverter(object):
                                 write_file(new_chunk_file, notes.strip())
                             elif words.strip() != '':
                                 # TRICKY: write tW even if there are no notes
-                                print('found tW without notes')
+                                print('WARNING: found tW without notes: {}'.format(chunk_file))
                                 notes = '{}\n\n# translationWords\n\n{}'.format(notes.strip(), words.strip())
                                 write_file(new_chunk_file, notes.strip())
+                            else:
+                                print('ERROR: no notes or words found in {}'.format(chunk_file))
 
                     except Exception as e:
                         print('ERROR: {}/{}/{}: {}'.format(book, chapter, chunk, e))
@@ -290,7 +299,7 @@ class TNConverter(object):
             else:
                 return '[{}](../{}/{}.md)'.format(title, match_chapter, match_chunk)
         else:
-            print('WARNING: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
+            # print('INFO: linking to a different book at {}/{}/{}: {}'.format(book, chapter, chunk, match.group(0)))
             return '[{}](../../{}/{}/{}.md)'.format(title, match.group(1), match_chapter, match_chunk)
 
     def format_note_link(self, book, chapter, chunk, match):
