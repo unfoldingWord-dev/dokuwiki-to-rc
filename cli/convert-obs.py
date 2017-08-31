@@ -1,7 +1,7 @@
 from __future__ import print_function, unicode_literals
 import argparse
 import sys
-from general_tools.print_utils import print_ok
+from print_utils import print_ok
 from converters.obs_converter import OBSConverter
 
 if __name__ == '__main__':

@@ -3,8 +3,8 @@ from __future__ import print_function, unicode_literals
 import codecs
 import os
 import re
-from general_tools.file_utils import write_file, make_dir
-from general_tools.url_utils import get_languages, join_url_parts, get_url
+from file_utils import write_file, make_dir
+from url_utils import get_languages, join_url_parts, get_url
 from obs.obs_classes import OBS, OBSManifest, OBSSourceTranslation, OBSManifestEncoder
 from converters.common import quiet_print, dokuwiki_to_markdown
 from resource_container import factory
@@ -86,7 +86,7 @@ class OBSConverter(object):
 
         # book title
         with codecs.open(os.path.join(self.download_dir, 'content', 'front', 'intro.md'), 'r', encoding='utf-8') as in_front_file:
-            front_data = in_front_file.read()
+            front_data = in_front_file.read().strip()
             if self.book_title_re.search(front_data):
                 # TODO: split by pipe and just grab the last bit
                 title = self.book_title_re.search(front_data).group(1)
@@ -103,21 +103,25 @@ class OBSConverter(object):
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
         manifest = OBSManifest()
 
+        contributors = self.split_str(status['contributors'])
+        if len(contributors) == 0:
+            contributors = [
+                    'Distant Shores Media',
+                    'Wycliffe Associates'
+                ]
+
         new_manifest = {
             'dublin_core': {
                 'title': title,
                 'type': 'book',
                 'format': manifest.content_mime_type,
-                'contributor': [
-                    'Distant Shores Media',
-                    'Wycliffe Associates'
-                ],
+                'contributor': contributors,
                 'creator': 'Distant Shores Media',
                 'description': 'An unrestricted visual mini-Bible in any language',
                 'identifier': manifest.resource['slug'],
                 'language': {
                     'direction': self.lang_data['ld'],
-                    'identifier': status['source_text'],
+                    'identifier': self.lang_data['lc'],
                     'title': self.lang_data['ang']
                 },
                 'modified': datetime.today().strftime('%Y-%m-%d'),
@@ -129,7 +133,7 @@ class OBSConverter(object):
                 ],
                 'source': [{
                     'identifier': manifest.resource['slug'],
-                    'language': manifest.language['slug'],
+                    'language': status['source_text'],
                     'version': status['source_text_version']
                 }],
                 'subject': 'Bible stories',
@@ -138,7 +142,7 @@ class OBSConverter(object):
                 'rights': 'CC BY-SA 4.0'
             },
             'checking': {
-                'checking_entity': re.split(r'\s*;\s*|\s*,\s*', status['checking_entity']),
+                'checking_entity': self.split_str(status['checking_entity']),
                 'checking_level': status['checking_level']
             },
             'projects': [{
@@ -147,10 +151,14 @@ class OBSConverter(object):
                 'path': './content',
                 'sort': 0,
                 'title': title,
-                'versification': manifest.versification_slug
+                'versification': ''
             }]
         }
-        shutil.rmtree(self.out_dir)
+        if os.path.exists(self.out_dir):
+            shutil.rmtree(self.out_dir)
+        parent_dir = os.path.dirname(self.out_dir)
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
 
         new_manifest = to_str(new_manifest)
 
@@ -172,9 +180,23 @@ class OBSConverter(object):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         shutil.copy(os.path.join(dir_path, 'OBS_LICENSE.md'), os.path.join(self.out_dir, 'LICENSE.md'))
 
+    def split_str(self, str):
+        """
+        Splits a string into a list and removes empty strings
+        :param str: 
+        :return: 
+        """
+        items = re.split(r'\s*;\s*|\s*,\s*', str)
+        results = []
+        for item in items:
+            if item:
+                results.append(item)
+        return results
+
+
     def chunk_chapter(self, rc, chapter_file, chapter):
         with codecs.open(chapter_file, 'r', encoding='utf-8') as in_file:
-            data = in_file.read()
+            data = in_file.read().strip()
 
             # title
             if self.chapter_title_re.search(data):
@@ -223,6 +245,7 @@ class OBSConverter(object):
         """
         Cleans up text from possible DokuWiki and HTML tag pollution.
         """
+        text = text.strip()
         if self.html_tag_re.search(text):
             text = self.html_tag_re.sub('', text)
         if self.link_tag_re.search(text):

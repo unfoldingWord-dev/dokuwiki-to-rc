@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 import argparse
 import sys
 from print_utils import print_ok
-from converters.tw_converter import TWConverter
+from converters.tn_converter import TNConverter
 
 if __name__ == '__main__':
     print()
@@ -12,13 +12,13 @@ if __name__ == '__main__':
                         required=True, help='Language code of resource.')
     parser.add_argument('-r', '--gitrepo', dest='gitrepo', default=False,
                         required=True, help='Git repository where the source can be found.')
-    parser.add_argument('-o', '--outdir', dest='outdir', default=False,
-                        required=True, help='The output directory for markdown files.')
+    parser.add_argument('-o', '--outdir', dest='out_dir', default=False,
+                        required=True, help='The output directory for Bible tN markdown files.')
 
     args = parser.parse_args(sys.argv[1:])
 
     # do the import
-    with TWConverter(args.lang, args.gitrepo, args.outdir, False) as importer:
+    with TNConverter(args.lang, args.gitrepo, args.out_dir, False) as importer:
         importer.run()
 
     print_ok('ALL FINISHED: ', 'Please check the output directory.')
