@@ -69,7 +69,13 @@ def convert_door43_repos(source):
         door43_repo_list = json.loads(door43_repos_str)
         for repo in door43_repo_list:
             name = repo['name']
+            if name[:4] != 'd43-':
+                print("[\nSkipping over: {0}\n".format(name))
+                continue
             data = get_repo_data(name, out_dir, repo)
+            if not data:
+                print("[\nError getting data for: {0}\n".format(name))
+                continue
             door43_repos[name] = data
 
             for migration_class in [OBS_Migration]:
@@ -83,7 +89,9 @@ def convert_door43_repos(source):
 def get_repo_data(name, out_dir, repo):
     contents_url_ = repo['contents_url']
     base_url = contents_url_.replace('{+path}', '')
-    parts = name.split('-')
+    parts = name.split('-', 1)
+    if len(parts) != 2:
+        return None
     lang = parts[1]
     lang_folder = os.path.join(out_dir, lang)
     file_utils.make_dir(lang_folder)
