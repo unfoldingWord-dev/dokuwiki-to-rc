@@ -16,13 +16,15 @@ import os
 import sys
 from contextlib import closing
 from general_tools import file_utils
-from converters.obs_converter import OBSConverter
+from migration.obs_migration import OBS_Migration
 
 try:
     import urllib.request as urllib2
 except ImportError:
     import urllib2
 
+REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
+RETRY_FAILURES = False
 
 def get_url(url, catch_exception=False):
     """
@@ -66,16 +68,18 @@ def convert_door43_repos(source):
     source_url = source
     out_dir = '../ConvertedDokuWiki'
     file_utils.make_dir(out_dir)
+    door43_repos = {}
     while source_url:
         door43_repos_str, link = get_url(source_url)
         door43_repo_list = json.loads(door43_repos_str)
-        door43_repos = {}
         for repo in door43_repo_list:
             name = repo['name']
             data = get_repo_data(name, out_dir, repo)
             door43_repos[name] = data
 
-            convert_obs_if_not(data['lc'], data['lang_folder'], data['repo_url'],name)
+            for migration_class in [OBS_Migration]:
+                migration = migration_class(data, RETRY_FAILURES)
+                success = migration.run()
 
         source_url = get_next_link(link)
     print(len(door43_repos))
@@ -100,29 +104,8 @@ def get_repo_data(name, out_dir, repo):
     return data
 
 
-def convert_obs_if_not(lang, lang_folder, repo_url, name):
-    obs_folder = os.path.join(lang_folder, 'obs')
-    if not os.path.exists(os.path.join(obs_folder, 'content')):
-        file_utils.make_dir(obs_folder)
-
-        obs_conv = None
-        try:
-            obs_conv = OBSConverter(lang, repo_url, obs_folder, False)
-            obs_conv.run()
-        except Exception as e:
-            step = "Init" if not obs_conv else obs_conv.trying
-            msg = "Failed doing '" + step + "', error: " + str(e)
-            print("\n" + msg)
-            return msg
-    else:
-        print("\nSkipping over already converted OBS in " + name)
-
-    return None
-
-
 if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
-    source_url = 'https://api.github.com/users/Door43/repos'
-    convert_door43_repos(source_url)
+    convert_door43_repos(REPOS_SOURCE)
