@@ -28,6 +28,7 @@ class OBSConverter(object):
     chapter_title_re = re.compile(r'^#\s*([^#]+)#*', re.UNICODE)
     chapter_reference_re = re.compile(r'^\_([^\_]+)\_', re.UNICODE | re.MULTILINE)
     image_re = re.compile(r'^\!\[', re.UNICODE | re.MULTILINE)
+    langs = None
 
     def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
@@ -41,16 +42,21 @@ class OBSConverter(object):
         self.out_dir = out_dir
         self.quiet = quiet
         self.download_dir = tempfile.mkdtemp(prefix='OBS_TEMP')
+        self.trying = 'Init'
 
         if 'github' not in git_repo and 'file://' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
-        try:
-            quiet_print(self.quiet, 'Downloading language data...', end=' ')
-            langs = get_languages()
-        finally:
-            quiet_print(self.quiet, 'finished.')
+        if OBSConverter.langs:  # check if cached
+            langs = OBSConverter.langs
+        else:
+            try:
+                quiet_print(self.quiet, 'Downloading language data...', end=' ')
+                langs = get_languages()
+                OBSConverter.langs = langs
+            finally:
+                quiet_print(self.quiet, 'finished.')
 
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
@@ -79,12 +85,15 @@ class OBSConverter(object):
         base_url = self.git_repo.replace('github.com', 'raw.githubusercontent.com')
 
         # download front and back matter
+        self.trying = 'downloading front and back matter'
         front_path = os.path.join(self.download_dir, 'content', 'front', 'intro.md')
         self.download_obs_file(base_url, 'front-matter.txt', front_path)
         back_path = os.path.join(self.download_dir, 'content', 'back', 'intro.md')
         self.download_obs_file(base_url, 'back-matter.txt', back_path)
 
         # book title
+        self.trying = 'getting title'
+        title = ''
         with codecs.open(os.path.join(self.download_dir, 'content', 'front', 'intro.md'), 'r', encoding='utf-8') as in_front_file:
             front_data = in_front_file.read()
             if self.book_title_re.search(front_data):
@@ -100,9 +109,12 @@ class OBSConverter(object):
 
         # get the status
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
-        status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
+        status_path = join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt')
+        self.trying = 'getting UW status (' + status_path + ')'
+        status = self.get_json_dict(status_path)
         manifest = OBSManifest()
 
+        self.trying = 'creating manifest'
         new_manifest = {
             'dublin_core': {
                 'title': title,
@@ -159,6 +171,7 @@ class OBSConverter(object):
         # download OBS story files
         story_dir = os.path.join(self.download_dir, 'content')
         for file_to_download in files_to_download:
+            self.trying = 'converting: ' + file_to_download
             chapter_file = os.path.join(story_dir, file_to_download)
             self.download_obs_file(base_url, file_to_download, chapter_file)
             # split chapters into chunks
@@ -166,6 +179,7 @@ class OBSConverter(object):
             self.chunk_chapter(rc, chapter_file, chapter_slug)
             os.remove(chapter_file)
 
+        self.trying = 'writing book info'
         rc.write_chunk('front', 'title', title)
         rc.write_chunk('front', 'intro', codecs.open(front_path, 'r', encoding='utf-8').read())
         rc.write_chunk('back', 'intro', codecs.open(back_path, 'r', encoding='utf-8').read())

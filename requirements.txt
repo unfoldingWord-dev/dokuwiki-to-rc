@@ -2,4 +2,5 @@ requests
 uw-tools
 obs-tools
 tx-shared-tools
+urllib
 -e git://github.com/unfoldingWord-dev/python-resource-container#egg=resource_container
