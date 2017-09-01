@@ -81,7 +81,7 @@ class Migration(object):
 
             converter = None
             try:
-                converter = conversion_class(self.lang, self.repo_url, self.destination, False)
+                converter = conversion_class(self.lang, self.repo_url, self.destination, False, flat_format=True)
                 converter.run()
                 if converter.not_translated():
                     self.set_error("Title not converted error")

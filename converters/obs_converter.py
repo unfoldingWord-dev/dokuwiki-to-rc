@@ -30,7 +30,7 @@ class OBSConverter(object):
     image_re = re.compile(r'^\!\[', re.UNICODE | re.MULTILINE)
     langs = None
 
-    def __init__(self, lang_code, git_repo, out_dir, quiet):
+    def __init__(self, lang_code, git_repo, out_dir, quiet, flat_format=False):
         """
 
         :param unicode lang_code:
@@ -42,7 +42,6 @@ class OBSConverter(object):
         self.out_dir = out_dir
         self.quiet = quiet
         self.download_dir = tempfile.mkdtemp(prefix='OBS_TEMP')
-        self.trying = 'Init'
 
         if 'github' not in git_repo and 'file://' not in git_repo:
             raise Exception('Currently only github repositories are supported.')
@@ -58,13 +57,15 @@ class OBSConverter(object):
             finally:
                 quiet_print(self.quiet, 'finished.')
 
-        self.english = lang_code[:2] == 'en'
-        self.translated_titles = 0
-
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
         if not self.lang_data:
             raise Exception('Information for language "{0}" was not found.'.format(lang_code))
+
+        self.flat_format = flat_format
+        self.trying = 'Init'
+        self.english = lang_code[:2] == 'en'
+        self.translated_titles = 0
 
     def __enter__(self):
         return self
@@ -193,23 +194,33 @@ class OBSConverter(object):
         with codecs.open(chapter_file, 'r', encoding='utf-8') as in_file:
             data = in_file.read()
 
-            # title
-            if self.chapter_title_re.search(data):
-                title = self.chapter_title_re.search(data).group(1).rstrip()
-                print('TITLE: ', title)
-                self.test_for_translated_title(title)
-                rc.write_chunk(chapter, 'title', title)
-                data = self.chapter_title_re.sub('', data).lstrip()
+            if not self.flat_format:
+                # title
+                if self.chapter_title_re.search(data):
+                    title = self.chapter_title_re.search(data).group(1).rstrip()
+                    print('TITLE: ', title)
+                    self.test_for_translated_title(title)
+                    rc.write_chunk(chapter, 'title', title)
+                    data = self.chapter_title_re.sub('', data).lstrip()
 
-            # reference
-            if self.chapter_reference_re.search(data):
-                reference = self.chapter_reference_re.search(data).group(1)
-                rc.write_chunk(chapter, 'reference', reference)
-                data = self.chapter_reference_re.sub('', data).rstrip()
+                # reference
+                if self.chapter_reference_re.search(data):
+                    reference = self.chapter_reference_re.search(data).group(1)
+                    rc.write_chunk(chapter, 'reference', reference)
+                    data = self.chapter_reference_re.sub('', data).rstrip()
 
-            # chunk
-            chunk = self.dir_link_re.sub('', data)
-            rc.write_chunk(chapter, '01', chunk)
+                # chunk
+                chunk = self.dir_link_re.sub('', data)
+                rc.write_chunk(chapter, '01', chunk)
+
+            else:
+                if self.chapter_title_re.search(data):
+                    title = self.chapter_title_re.search(data).group(1).rstrip()
+                    print('TITLE: ', title)
+                    self.test_for_translated_title(title)
+
+                # chunk
+                rc.write_chunk('.', chapter, data)
 
     def download_obs_file(self, base_url, file_to_download, out_file):
 
