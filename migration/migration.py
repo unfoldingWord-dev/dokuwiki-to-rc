@@ -53,7 +53,7 @@ class Migration(object):
     def set_error(self, msg):
         self.data[self.success_key] = False
         self.data[self.error_key] = msg
-        print("\nError converting " + self.results_prefix + self.lang + ": " + msg)
+        print("\nError converting " + self.results_prefix + self.lang + ":\n" + msg)
         self.save_results()
 
     def set_success(self, success):
@@ -63,13 +63,13 @@ class Migration(object):
 
     def is_conversion_needed(self, sub_path):
         exists = os.path.exists(os.path.join(self.destination, sub_path))
+        results = self.read_results()
+        last_success = False if not results else results[self.success_key]
+        error_retry = not last_success and self.retry_failures
+
         if exists:
-            last_success = self.get_last_success()
-            convert = not last_success and self.retry_failures  # if last conversion failed, retry if directed
+            convert = error_retry  # if last conversion failed, retry if directed
         else:
-            results = self.read_results()
-            error = False if not results else results[self.error_key]
-            error_retry = (error and self.retry_failures)  # try again if we had error last time and retry is directed
             convert = (not results) or error_retry  # if there are no results, presume new conversion
         return convert
 

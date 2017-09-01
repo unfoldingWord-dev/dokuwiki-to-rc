@@ -10,21 +10,28 @@
 #
 #    Usage: python execute.py name_of_script_in_cli_dir
 #
+
+####################################################################################################
+# setup: copy auth_token.py.example to auth_token.py and edit to set user and toke from github
+#  see https://github.com/blog/1509-personal-api-tokens for how to create a token and set the scope to
+#    'public_repo'
+####################################################################################################
+
 from __future__ import unicode_literals
 import json
 import os
 import sys
-from contextlib import closing
+import requests
 from general_tools import file_utils
+from auth_token import get_user_token
 from migration.obs_migration import OBS_Migration
 
-try:
-    import urllib.request as urllib2
-except ImportError:
-    import urllib2
 
 REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
 RETRY_FAILURES = False
+user_name = None
+user_token = None
+
 
 def get_url(url, catch_exception=False):
     """
@@ -35,32 +42,19 @@ def get_url(url, catch_exception=False):
     if catch_exception:
         # noinspection PyBroadException
         try:
-            with closing(urllib2.urlopen(url)) as request:
-                response = request.read()
+            response = requests.get(url, auth=(user_name, user_token))
         except:
-            response = False
+            return None, None
     else:
-        with closing(urllib2.urlopen(url)) as request:
-            response = request.read()
+        response = requests.get(url, auth=(user_name, user_token))
 
-    info = request.info()
-    link = info.get('Link')  # get Link from headers
-
-    # convert bytes to str (Python 3.5)
-    if type(response) is bytes:
-        return response.decode('utf-8'), link
-    else:
-        return response, link
+    return response.text, response.links
 
 
 def get_next_link(links):
-    link_list = links.split(',')
-    for link in link_list:
-        parts = link.split(';')
-        if parts[1].strip() == 'rel="next"':
-            url_str = parts[0]
-            url = url_str[1:-1]
-            return url
+    if 'next' in links:
+        next = links['next']
+        return next['url']
     return None
 
 
@@ -70,6 +64,7 @@ def convert_door43_repos(source):
     file_utils.make_dir(out_dir)
     door43_repos = {}
     while source_url:
+        print("\nOpening: " + source_url + "\n")
         door43_repos_str, link = get_url(source_url)
         door43_repo_list = json.loads(door43_repos_str)
         for repo in door43_repo_list:
@@ -108,4 +103,7 @@ if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
+    security = get_user_token().split(':')
+    user_name = security[0]
+    user_token = security[1]
     convert_door43_repos(REPOS_SOURCE)

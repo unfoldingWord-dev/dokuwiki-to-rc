@@ -5,3 +5,4 @@ github_api_token
 src/
 .coverage
 dokuwiki_to_rc.egg-info/
+auth_token.py
