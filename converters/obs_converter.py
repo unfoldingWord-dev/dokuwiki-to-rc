@@ -58,6 +58,9 @@ class OBSConverter(object):
             finally:
                 quiet_print(self.quiet, 'finished.')
 
+        self.english = lang_code[:2] == 'en'
+        self.translated_titles = 0
+
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
         if not self.lang_data:
@@ -194,6 +197,7 @@ class OBSConverter(object):
             if self.chapter_title_re.search(data):
                 title = self.chapter_title_re.search(data).group(1).rstrip()
                 print('TITLE: ', title)
+                self.test_for_translated_title(title)
                 rc.write_chunk(chapter, 'title', title)
                 data = self.chapter_title_re.sub('', data).lstrip()
 
@@ -259,3 +263,68 @@ class OBSConverter(object):
             return_val[k.strip().lower().replace(' ', '_')] = v.strip()
 
         return return_val
+
+    def test_for_translated_title(self, text):
+        if not self.english and (self.translated_titles == 0):
+            for english_title in english_titles:
+                if text.find(english_title) >= 0:
+                    return
+            self.translated_titles += 1
+
+    def not_translated(self):
+        return not self.english and self.translated_titles == 0
+
+english_titles = [
+    'The Creation',
+    'Sin Enters the World',
+    'The Flood',
+    'God’s Covenant with Abraham',
+    'The Son of Promise',
+    'God Provides for Isaac',
+    'God Blesses Jacob',
+    'God Blessed Jacob',
+    'God Saves Joseph and His Family',
+    'God Calls Moses',
+    'The Ten Plagues',
+    'The Passover',
+    'The Exodus',
+    'God’s Covenant with Israel',
+    'Wandering in the Wilderness',
+    'The Promised Land',
+    'The Deliverers',
+    'God’s Covenant with David',
+    'The Divided Kingdom',
+    'The Prophets',
+    'The Exile and Return',
+    'God Promises the Messiah',
+    'The Birth of John',
+    'The Birth of Jesus',
+    'John Baptizes Jesus',
+    'Satan Tempts Jesus',
+    'Jesus Starts His Ministry',
+    'The Story of the Good Samaritan',
+    'The Rich Young Ruler',
+    'The Story of the Unmerciful Servant',
+    'Jesus Feeds Five Thousand People',
+    'Jesus Walks on Water',
+    'Jesus Heals a Demon-Possessed Man & a Sick Woman',
+    'The Story of the Farmer',
+    'Jesus Teaches Other Stories',
+    'The Story of the Compassionate Father',
+    'The Transfiguration',
+    'Jesus Raises Lazarus from the Dead',
+    'Jesus Is Betrayed',
+    'Jesus Is Put on Trial',
+    'Jesus Is Crucified',
+    'God Raises Jesus from the Dead',
+    'Jesus Returns to Heaven',
+    'The Church Begins',
+    'Peter and John Heal a Beggar',
+    'Stephen and Philip',
+    'Paul Becomes a Christian',
+    'Paul and Silas in Philippi',
+    'Jesus Is the Promised Messiah',
+    'God’s New Covenant',
+    'Jesus Returns',
+    'Philip and the Ethiopian Official'
+]
