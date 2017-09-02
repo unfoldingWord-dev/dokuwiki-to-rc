@@ -66,7 +66,7 @@ def convert_door43_repos(source):
     out_dir = DESTINATION_FOLDER
     file_utils.make_dir(out_dir)
     results_file = os.path.join(out_dir, "results.json")
-    door43_repos = {}
+    door43_repos = file_utils.load_json_object(results_file)
     while source_url:
         print("\nOpening: " + source_url + "\n")
         door43_repos_str, link = get_url(source_url)
