@@ -10,7 +10,7 @@ class OBS_Migration(Migration):
 
     def __init__(self, data, retry_failures):
         super(OBS_Migration, self).__init__(data, retry_failures)
-        self.create_keys('obs_')
+        self.create_keys('obs')
 
     def run(self):
-        return self.do_conversion('obs', 'content', OBSConverter)
+        return self.do_conversion(self.type, 'content', OBSConverter)

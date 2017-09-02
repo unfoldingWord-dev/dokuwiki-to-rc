@@ -62,6 +62,7 @@ def convert_door43_repos(source):
     source_url = source
     out_dir = '../ConvertedDokuWiki'
     file_utils.make_dir(out_dir)
+    results_file = os.path.join(out_dir, "results.json")
     door43_repos = {}
     while source_url:
         print("\nOpening: " + source_url + "\n")
@@ -76,11 +77,15 @@ def convert_door43_repos(source):
             if not data:
                 print("[\nError getting data for: {0}\n".format(name))
                 continue
-            door43_repos[name] = data
 
             for migration_class in [OBS_Migration]:
                 migration = migration_class(data, RETRY_FAILURES)
+                migration_name = name + '_' + migration.type
+                door43_repos[migration_name] = data
                 success = migration.run()
+                if migration.final_data:  # update with final data
+                    door43_repos[migration_name] = migration.final_data
+                file_utils.write_file(results_file, door43_repos)
 
         source_url = get_next_link(link)
     print(len(door43_repos))

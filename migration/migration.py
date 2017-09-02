@@ -17,26 +17,39 @@ class Migration(object):
         self.data = data
         self.error = None
         self.destination = None
+        self.type = ''
         self.results_prefix = ''
         self.error_key = 'error'
         self.success_key = 'success'
         self.retry_failures = retry_failures
+        self.final_data = None
+        self.last_success = False
+        self.last_error = None
 
     def run(self):
         pass
 
-    def create_keys(self, prefix):
+    def create_keys(self, type):
+        self.type = type
+        prefix = type + '_'
         self.results_prefix = prefix
         self.error_key = prefix + 'error'
         self.success_key = prefix + 'success'
 
     def save_results(self):
         path = self.get_results_path()
+        self.final_data = self.data
         file_utils.write_file(path, self.data)
+
+    def clear_results(self):
+        path = self.get_results_path()
+        os.remove(path)
+        self.final_data = None
 
     def read_results(self):
         path = self.get_results_path()
         results = file_utils.load_json_object(path)
+        self.final_data = results
         return results
 
     def get_last_success(self):
@@ -65,18 +78,32 @@ class Migration(object):
         exists = os.path.exists(os.path.join(self.destination, sub_path))
         results = self.read_results()
         last_success = False if not results else results[self.success_key]
-        error_retry = not last_success and self.retry_failures
+        self.last_success = last_success
+        self.last_error = None if not results else results[self.error_key]
 
+        convert = False
         if exists:
-            convert = error_retry  # if last conversion failed, retry if directed
+            if not last_success and self.retry_failures:   # if last conversion failed, retry if selected
+                convert = True
+            # convert = True  # TODO remove force
         else:
-            convert = (not results) or error_retry  # if there are no results, presume new conversion
+            if not results:  # if there are no results, presume this is new conversion
+                convert = True
+
+            elif last_success:  # if last results says success, but output folder missing, redo conversion
+                convert = True
+
+            # if there was an error last time and retry_failures selected, reconvert
+            elif not last_success and self.retry_failures:
+                convert = True
+
         return convert
 
     def do_conversion(self, migration_folder, sub_path, conversion_class):
         self.destination = os.path.join(self.lang_folder, migration_folder)
         convert = self.is_conversion_needed(sub_path)
         if convert:
+            self.clear_results()
             file_utils.make_dir(self.destination)
 
             converter = None
@@ -94,7 +121,12 @@ class Migration(object):
                 msg = "Failed doing '" + step + "', error: " + str(e)
                 self.set_error(msg)
         else:
-            print("\nSkipping over already converted OBS in " + self.name)
+            if self.last_success:
+                print("\nSkipping over already converted OBS in " + self.name)
+            else:
+                print("\nSkipping over FAILED OBS in " + self.name)
+                if self.last_error:
+                    print("FAILED for: " + self.last_error + "\n")
             return True
 
         return False
