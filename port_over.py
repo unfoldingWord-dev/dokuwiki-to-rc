@@ -6,12 +6,13 @@
 #    See LICENSE file for details.
 #
 #    Contributors:
-#    Phil Hopper <phillip_hopper@wycliffeassociates.org>
+#    Bruce McLean
 #
 #    Usage: python execute.py name_of_script_in_cli_dir
 #
 
 ####################################################################################################
+#
 # setup: copy auth_token.py.example to auth_token.py and edit to set user and toke from github
 #  see https://github.com/blog/1509-personal-api-tokens for how to create a token and set the scope to
 #    'public_repo'
@@ -29,6 +30,8 @@ from migration.obs_migration import OBS_Migration
 
 REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
 RETRY_FAILURES = False
+DESTINATION_FOLDER = '../ConvertedDokuWiki'
+
 user_name = None
 user_token = None
 
@@ -60,7 +63,7 @@ def get_next_link(links):
 
 def convert_door43_repos(source):
     source_url = source
-    out_dir = '../ConvertedDokuWiki'
+    out_dir = DESTINATION_FOLDER
     file_utils.make_dir(out_dir)
     results_file = os.path.join(out_dir, "results.json")
     door43_repos = {}
@@ -71,11 +74,13 @@ def convert_door43_repos(source):
         for repo in door43_repo_list:
             name = repo['name']
             if name[:4] != 'd43-':
-                print("[\nSkipping over: {0}\n".format(name))
+                msg = "[\nSkipping over: {0}\n".format(name)
+                log_error(door43_repos, name, msg)
                 continue
             data = get_repo_data(name, out_dir, repo)
             if not data:
-                print("[\nError getting data for: {0}\n".format(name))
+                msg = "[\nError getting data for: {0}\n".format(name)
+                log_error(door43_repos, name, msg)
                 continue
 
             for migration_class in [OBS_Migration]:
@@ -89,6 +94,15 @@ def convert_door43_repos(source):
 
         source_url = get_next_link(link)
     print(len(door43_repos))
+
+
+def log_error(door43_repos, name, msg):
+    print(msg)
+    data = {
+        'name': name,
+        'error': msg
+    }
+    door43_repos[name] = data
 
 
 def get_repo_data(name, out_dir, repo):
