@@ -26,7 +26,7 @@ import requests
 from general_tools import file_utils
 from auth_token import get_user_token
 from migration.obs_migration import OBS_Migration
-
+from migration.tw_migration import TW_Migration
 
 REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
 RETRY_FAILURES = False
@@ -83,7 +83,7 @@ def convert_door43_repos(source):
                 log_error(results_file, door43_repos, name, msg)
                 continue
 
-            for migration_class in [OBS_Migration]:
+            for migration_class in [OBS_Migration, TW_Migration]:
                 migration = migration_class(data, RETRY_FAILURES)
                 migration_name = name + '_' + migration.type
                 door43_repos[migration_name] = data

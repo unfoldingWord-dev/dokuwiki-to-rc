@@ -16,8 +16,9 @@ class TWConverter(object):
     extra_blanks_re = re.compile(r'\n{3,}', re.UNICODE)
     page_query_re = re.compile(r'\{\{door43pages.*@:?(.*?)\s.*-q="(.*?)".*\}\}', re.UNICODE)
     tag_re = re.compile(r'\{\{tag>.*?\}\}', re.UNICODE)
+    langs = None
 
-    def __init__(self, lang_code, git_repo, out_dir, quiet):
+    def __init__(self, lang_code, git_repo, out_dir, quiet, flat_format=False):
         """
 
         :param unicode lang_code:
@@ -34,14 +35,25 @@ class TWConverter(object):
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
-        quiet_print(self.quiet, 'Downloading language data...', end=' ')
-        langs = get_languages()
-        quiet_print(self.quiet, 'finished.')
+        if TWConverter.langs:  # check if cached
+            langs = TWConverter.langs
+        else:
+            try:
+                quiet_print(self.quiet, 'Downloading language data...', end=' ')
+                langs = get_languages()
+                TWConverter.langs = langs
+            finally:
+                quiet_print(self.quiet, 'finished.')
 
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
         if not self.lang_data:
             raise Exception('Information for language "{0}" was not found.'.format(lang_code))
+
+        self.flat_format = flat_format
+        self.trying = 'Init'
+        self.english = lang_code[:2] == 'en'
+        self.translated_titles = 0
 
     def __enter__(self):
         return self
@@ -72,22 +84,27 @@ class TWConverter(object):
         kt_api_url = join_url_parts(base_url, 'contents/obe/kt')
         other_api_url = join_url_parts(base_url, 'contents/obe/other')
 
+        self.trying = 'Downloading kt file names'
         quiet_print(self.quiet, 'Downloading kt file names...', end=' ')
         kt_list = [o['download_url'] for o in json.loads(get_url(kt_api_url))]
         quiet_print(self.quiet, 'finished.')
 
+        self.trying = 'Downloading other file names'
         quiet_print(self.quiet, 'Downloading other file names...', end=' ')
         other_list = [o['download_url'] for o in json.loads(get_url(other_api_url))]
         quiet_print(self.quiet, 'finished.')
 
+        self.trying = 'Downloading kt files'
         target_dir = os.path.join(self.out_dir, 'content', 'kt')
         for url in kt_list:
             self.download_tw_file(url, target_dir)
 
+        self.trying = 'Downloading other files'
         target_dir = os.path.join(self.out_dir, 'content', 'other')
         for url in other_list:
             self.download_tw_file(url, target_dir)
 
+        self.trying = 'Saving Manifest'
         manifest = ResourceManifest('tw', 'translationWords')
         manifest.status['checking_level'] = '3'
         manifest.status['version'] = '3'
@@ -228,3 +245,6 @@ class TWConverter(object):
 
         parts = match.group(1).split('|', 1)
         return '[{0}](https://door43.org/en/obs/notes/frames/{0})'.format(parts[0])
+
+    def not_translated(self):
+        return False  # stub out for now

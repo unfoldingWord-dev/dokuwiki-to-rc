@@ -43,7 +43,10 @@ class Migration(object):
 
     def clear_results(self):
         path = self.get_results_path()
-        os.remove(path)
+        try:
+            os.remove(path)
+        except:
+            pass
         self.final_data = None
 
     def read_results(self):
@@ -51,6 +54,16 @@ class Migration(object):
         results = file_utils.load_json_object(path)
         self.final_data = results
         return results
+
+    def read_obs_results(self):
+        path = os.path.join(self.lang_folder, "obs_results.json")
+        results = file_utils.load_json_object(path)
+        return results
+
+    def read_obs_success(self):
+        results = self.read_obs_results()
+        success = False if not results else results["obs_success"]
+        return success
 
     def get_last_success(self):
         results = self.read_results()
