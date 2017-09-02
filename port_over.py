@@ -75,12 +75,12 @@ def convert_door43_repos(source):
             name = repo['name']
             if name[:4] != 'd43-':
                 msg = "[\nSkipping over: {0}\n".format(name)
-                log_error(door43_repos, name, msg)
+                log_error(results_file, door43_repos, name, msg)
                 continue
             data = get_repo_data(name, out_dir, repo)
             if not data:
                 msg = "[\nError getting data for: {0}\n".format(name)
-                log_error(door43_repos, name, msg)
+                log_error(results_file, door43_repos, name, msg)
                 continue
 
             for migration_class in [OBS_Migration]:
@@ -96,13 +96,14 @@ def convert_door43_repos(source):
     print(len(door43_repos))
 
 
-def log_error(door43_repos, name, msg):
+def log_error(results_file, door43_repos, name, msg):
     print(msg)
     data = {
         'name': name,
         'error': msg
     }
     door43_repos[name] = data
+    file_utils.write_file(results_file, door43_repos)
 
 
 def get_repo_data(name, out_dir, repo):
