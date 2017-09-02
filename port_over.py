@@ -74,12 +74,12 @@ def convert_door43_repos(source):
         for repo in door43_repo_list:
             name = repo['name']
             if name[:4] != 'd43-':
-                msg = "[\nSkipping over: {0}\n".format(name)
+                msg = "Skipping over: {0}\n".format(name)
                 log_error(results_file, door43_repos, name, msg)
                 continue
             data = get_repo_data(name, out_dir, repo)
             if not data:
-                msg = "[\nError getting data for: {0}\n".format(name)
+                msg = "Error getting data for: {0}\n".format(name)
                 log_error(results_file, door43_repos, name, msg)
                 continue
 
@@ -97,7 +97,7 @@ def convert_door43_repos(source):
 
 
 def log_error(results_file, door43_repos, name, msg):
-    print(msg)
+    print('\n' + msg)
     data = {
         'name': name,
         'error': msg

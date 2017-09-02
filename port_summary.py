@@ -66,21 +66,33 @@ def get_results_summary():
                 else:
                     obs_converted_error_misc.append(value)
 
-        print_results_list('Successes', obs_converted_success)
-        print_results_list('Missing front/back', obs_converted_error_missing)
-        print_results_list('Not Converted', obs_converted_error_not_converted)
-        print_results_list('Other Errors', obs_converted_error_misc, detail=True)
+        print_results_list('Successes', obs_converted_success, 'obs_error')
+        print_results_list('Missing front/back', obs_converted_error_missing, 'obs_error')
+        print_results_list('Title Not Translated', obs_converted_error_not_converted, 'obs_error')
+        print_results_list('Other Errors', obs_converted_error_misc, 'obs_error', detail=True)
 
-    print_results_list('Unrecognized items', results)
+    print_results_dict('Unrecognized items', results, 'error', detail=True)
 
 
-def print_results_list(msg, results_list, detail=False):
+def print_results_dict(msg, results_list, error_key, detail=False):
+    names = list(results_list.keys())
+    print("\n{0} {1}: {2}".format(len(names), msg, ','.join(names)))
+
+    if detail:
+        for name in names:
+            item = results_list[name]
+            error = get_key(item, error_key, None)
+            if not error:
+                error = json.dumps(item)
+            print("\n   {0}: {1}".format(item['name'], error))
+
+def print_results_list(msg, results_list, error_key, detail=False):
     names = [x['name'] for x in results_list]
-    print("{0} {1}: {2}".format(len(names), msg, ','.join(names)))
+    print("\n{0} {1}: {2}".format(len(names), msg, ','.join(names)))
 
     if detail:
         for item in results_list:
-            error = get_key(item, 'obs_error', None)
+            error = get_key(item, error_key, None)
             if not error:
                 error = json.dumps(item)
             print("\n   {0}: {1}".format(item['name'], error))
