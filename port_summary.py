@@ -62,6 +62,8 @@ def get_results_summary():
         obs_converted_error_not_converted = []
         tw_converted_success = []
         tw_converted_error_misc = []
+        tw_converted_error_missing = []
+        tw_converted_error_obs_failed = []
 
         keys = list(repo_results.keys())
         keys.sort()
@@ -98,11 +100,11 @@ def get_results_summary():
                     tw_converted_success.append(value)
 
                 elif error:
-                    if error.find('downloading front and back matter') >= 0:
-                        pass  # obs_converted_error_missing.append(value)
+                    if error.find('Downloading kt file names') >= 0:
+                        tw_converted_error_missing.append(value)
 
-                    # elif error.find('Title not converted error') >= 0:
-                    #     obs_converted_error_not_converted.append(value)
+                    elif error.find('Skipping over TW since OBS Failed') >= 0:
+                        tw_converted_error_obs_failed.append(value)
 
                     else:
                         tw_converted_error_misc.append(value)
@@ -115,6 +117,8 @@ def get_results_summary():
         print_results_list('OBS Title Not Translated', obs_converted_error_not_converted, 'obs_error')
         print_results_list('OBS Other Errors', obs_converted_error_misc, 'obs_error', detail=True)
         print_results_list('TW Successes', tw_converted_success, 'tw_error')
+        print_results_list('TW missing files', tw_converted_error_missing, 'tw_error')
+        print_results_list('TW failed OBS', tw_converted_error_obs_failed, 'tw_error')
         print_results_list('TW Other Errors', tw_converted_error_misc, 'tw_error', detail=True)
 
     print_results_dict('Unrecognized items', repo_results, 'error', detail=True)
