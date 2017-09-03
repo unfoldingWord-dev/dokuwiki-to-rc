@@ -16,10 +16,10 @@ class TN_Migration(Migration):
     def run(self):
         obs_success = self.read_obs_success()
         if obs_success:
-            print("\nConverting TW in: " + self.name)
+            print("\nConverting TN in: " + self.name)
             return self.do_conversion(self.type, 'content')
         else:
-            msg = "Skipping over TW since OBS Failed: " + self.name
+            msg = "Skipping over TN since OBS Failed: " + self.name
             print(msg)
             self.set_error(msg)
 

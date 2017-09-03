@@ -24,7 +24,6 @@ import os
 import sys
 import requests
 from general_tools import file_utils
-from auth_token import get_user_token
 from migration.obs_migration import OBS_Migration
 from migration.tn_migration import TN_Migration
 from migration.tq_migration import TQ_Migration
