@@ -55,6 +55,10 @@ class TQConverter(object):
             # read the text from the file
             self.access_token = in_file.read()
 
+        self.trying = 'Init'
+        self.english = lang_code[:2] == 'en'
+        self.translated_titles = 0
+
     def __enter__(self):
         return self
 
@@ -84,45 +88,51 @@ class TQConverter(object):
         bible_api_url = join_url_parts(base_url, 'contents/bible/questions/comprehension')
         obs_api_url = join_url_parts(base_url, 'contents/obs/notes/questions')
 
-        quiet_print(self.quiet, 'Downloading Bible tQ list.')
-        bible_list = self.process_api_request(bible_api_url)
-        quiet_print(self.quiet, 'Finished downloading Bible tQ list.')
+        if self.bible_out_dir:
+            self.trying = 'Downloading Bible tQ list'
+            quiet_print(self.quiet, 'Downloading Bible tQ list.')
+            bible_list = self.process_api_request(bible_api_url)
+            quiet_print(self.quiet, 'Finished downloading Bible tQ list.')
 
-        quiet_print(self.quiet, 'Downloading OBS tQ list.')
-        obs_list = self.process_api_request(obs_api_url)
-        quiet_print(self.quiet, 'Finished downloading OBS tQ list.')
+            self.trying = 'Downloading Bible content'
+            target_dir = os.path.join(self.bible_out_dir, 'content')
+            for url in bible_list:
+                self.download_bible_file(url, target_dir)
 
-        target_dir = os.path.join(self.bible_out_dir, 'content')
-        for url in bible_list:
-            self.download_bible_file(url, target_dir)
+            manifest = ResourceManifest('tq', 'translationQuestions')
+            manifest.status['checking_level'] = '3'
+            manifest.status['version'] = '3'
+            manifest.status['checking_entity'] = 'Wycliffe Associates'
 
-        manifest = ResourceManifest('tq', 'translationQuestions')
-        manifest.status['checking_level'] = '3'
-        manifest.status['version'] = '3'
-        manifest.status['checking_entity'] = 'Wycliffe Associates'
+            manifest.language['slug'] = lang_code
+            manifest.language['name'] = self.lang_data['ang']
+            manifest.language['dir'] = self.lang_data['ld']
 
-        manifest.language['slug'] = lang_code
-        manifest.language['name'] = self.lang_data['ang']
-        manifest.language['dir'] = self.lang_data['ld']
+            manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
+            write_file(os.path.join(self.bible_out_dir, 'manifest.json'), manifest_str)
 
-        manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
-        write_file(os.path.join(self.bible_out_dir, 'manifest.json'), manifest_str)
+        if self.obs_out_dir:
+            self.trying = 'Downloading OBS tQ list'
+            quiet_print(self.quiet, 'Downloading OBS tQ list.')
+            obs_list = self.process_api_request(obs_api_url)
+            quiet_print(self.quiet, 'Finished downloading OBS tQ list.')
 
-        target_dir = os.path.join(self.obs_out_dir, 'content')
-        for url in obs_list:
-            self.download_obs_file(url, target_dir)
+            self.trying = 'Downloading OBS content'
+            target_dir = os.path.join(self.obs_out_dir, 'content')
+            for url in obs_list:
+                self.download_obs_file(url, target_dir)
 
-        manifest = ResourceManifest('obs-tq', 'OBS translationQuestions')
-        manifest.status['checking_level'] = '3'
-        manifest.status['version'] = '3'
-        manifest.status['checking_entity'] = 'Wycliffe Associates'
+            manifest = ResourceManifest('obs-tq', 'OBS translationQuestions')
+            manifest.status['checking_level'] = '3'
+            manifest.status['version'] = '3'
+            manifest.status['checking_entity'] = 'Wycliffe Associates'
 
-        manifest.language['slug'] = lang_code
-        manifest.language['name'] = self.lang_data['ang']
-        manifest.language['dir'] = self.lang_data['ld']
+            manifest.language['slug'] = lang_code
+            manifest.language['name'] = self.lang_data['ang']
+            manifest.language['dir'] = self.lang_data['ld']
 
-        manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
-        write_file(os.path.join(self.obs_out_dir, 'manifest.json'), manifest_str)
+            manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
+            write_file(os.path.join(self.obs_out_dir, 'manifest.json'), manifest_str)
 
     def process_api_request(self, url):
 

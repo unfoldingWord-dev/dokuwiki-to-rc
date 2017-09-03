@@ -18,7 +18,7 @@ class TWConverter(object):
     tag_re = re.compile(r'\{\{tag>.*?\}\}', re.UNICODE)
     langs = None
 
-    def __init__(self, lang_code, git_repo, out_dir, quiet, flat_format=False):
+    def __init__(self, lang_code, git_repo, out_dir, quiet):
         """
 
         :param unicode lang_code:
@@ -50,7 +50,6 @@ class TWConverter(object):
         if not self.lang_data:
             raise Exception('Information for language "{0}" was not found.'.format(lang_code))
 
-        self.flat_format = flat_format
         self.trying = 'Init'
         self.english = lang_code[:2] == 'en'
         self.translated_titles = 0
@@ -245,6 +244,3 @@ class TWConverter(object):
 
         parts = match.group(1).split('|', 1)
         return '[{0}](https://door43.org/en/obs/notes/frames/{0})'.format(parts[0])
-
-    def not_translated(self):
-        return False  # stub out for now

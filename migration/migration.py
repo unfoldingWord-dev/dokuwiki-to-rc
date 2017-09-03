@@ -112,7 +112,13 @@ class Migration(object):
 
         return convert
 
-    def do_conversion(self, migration_folder, sub_path, conversion_class):
+    def init_converter(self, lang_code, git_repo, out_dir, quiet):
+        return None
+
+    def not_translated(self, converter):
+        return False  # implement this in subclasses that support this
+
+    def do_conversion(self, migration_folder, sub_path):
         self.destination = os.path.join(self.lang_folder, migration_folder)
         convert = self.is_conversion_needed(sub_path)
         if convert:
@@ -121,9 +127,9 @@ class Migration(object):
 
             converter = None
             try:
-                converter = conversion_class(self.lang, self.repo_url, self.destination, False, flat_format=True)
+                converter = self.init_converter(self.lang, self.repo_url, self.destination, False)
                 converter.run()
-                if converter.not_translated():
+                if self.not_translated(converter):
                     self.set_error("Title not converted error")
                 else:
                     self.set_success(True)

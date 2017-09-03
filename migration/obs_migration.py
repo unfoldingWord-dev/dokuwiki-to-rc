@@ -13,4 +13,12 @@ class OBS_Migration(Migration):
         self.create_keys('obs')
 
     def run(self):
-        return self.do_conversion(self.type, 'content', OBSConverter)
+        return self.do_conversion(self.type, 'content')
+
+    def init_converter(self, lang_code, git_repo, out_dir, quiet):
+        return OBSConverter(lang_code, git_repo, out_dir, quiet, flat_format=True)
+
+    def not_translated(self, converter):
+        if converter:
+            return converter.not_translated()
+        return False
