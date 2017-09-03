@@ -23,6 +23,7 @@ import json
 import os
 import sys
 import requests
+import shutil
 from general_tools import file_utils
 from migration.obs_migration import OBS_Migration
 from migration.tn_migration import TN_Migration
@@ -35,7 +36,7 @@ DESTINATION_FOLDER = '../ConvertedDokuWiki'
 access_token = None
 
 
-def get_url(url, catch_exception=False):
+def get_url(url):
     """
     :param str|unicode url: URL to open
     :param bool catch_exception: If <True> catches all exceptions and returns <False>
@@ -45,15 +46,7 @@ def get_url(url, catch_exception=False):
         'access_token': access_token
     }
 
-    if catch_exception:
-        # noinspection PyBroadException
-        try:
-            response = requests.get(url, params=params)
-        except:
-            return None, None
-    else:
-        response = requests.get(url, params=params)
-
+    response = requests.get(url, params=params)
     return response.text, response.links
 
 
@@ -85,6 +78,8 @@ def convert_door43_repos(source):
             if lang_code not in valid_repos:
                 msg = "Skipping over unsupported language: {0}\n".format(name)
                 log_error(results_file, door43_repos, name, msg)
+                lang_folder = os.path.join(out_dir, lang_code)
+                shutil.rmtree(lang_folder, ignore_errors=True)  # make sure nothing left over from previous attempts
                 continue
 
             data = get_repo_data(name, out_dir, repo)
