@@ -18,6 +18,7 @@ class TNConverter(object):
     tag_re = re.compile(r'\{\{tag>.*?\}\}', re.UNICODE)
     html_tag_re = re.compile(r'<.*?>', re.UNICODE)
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
+    langs = None
 
     def __init__(self, lang_code, git_repo, out_dir, quiet, overwrite):
         """
@@ -38,14 +39,24 @@ class TNConverter(object):
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
-        quiet_print(self.quiet, 'Downloading language data...', end=' ')
-        langs = get_languages()
-        quiet_print(self.quiet, 'finished.')
+        if TNConverter.langs:  # check if cached
+            langs = TNConverter.langs
+        else:
+            try:
+                quiet_print(self.quiet, 'Downloading language data...', end=' ')
+                langs = get_languages()
+                TNConverter.langs = langs
+            finally:
+                quiet_print(self.quiet, 'finished.')
 
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
         if not self.lang_data:
             raise Exception('Information for language "{0}" was not found.'.format(lang_code))
+
+        self.trying = 'Init'
+        self.english = lang_code[:2] == 'en'
+        self.translated_titles = 0
 
     def __enter__(self):
         return self
@@ -71,10 +82,12 @@ class TNConverter(object):
         base_url = self.git_repo.replace('github.com', 'api.github.com/repos')
         frames_api_url = join_url_parts(base_url, 'contents/obs/notes/frames')
 
+        self.trying = 'Getting OBS frame URLs'
         quiet_print(self.quiet, 'Getting OBS frame URLs...', end=' ')
         frames_list = [o['download_url'] for o in json.loads(get_url(frames_api_url))]
         quiet_print(self.quiet, 'finished.')
 
+        self.trying = 'Downloads OBS frame files'
         target_dir = os.path.join(self.out_dir, 'content')
         for url in frames_list:
             if url:
