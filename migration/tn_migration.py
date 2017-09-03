@@ -11,7 +11,7 @@ class TN_Migration(Migration):
 
     def __init__(self, data, retry_failures):
         super(TN_Migration, self).__init__(data, retry_failures)
-        self.create_keys('tw')
+        self.create_keys('tn')
 
     def run(self):
         obs_success = self.read_obs_success()

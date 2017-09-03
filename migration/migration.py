@@ -141,9 +141,9 @@ class Migration(object):
                 self.set_error(msg)
         else:
             if self.last_success:
-                print("\nSkipping over already converted OBS in " + self.name)
+                print("\nSkipping over already converted {0} in {1}".format(self.type.upper(), self.name))
             else:
-                print("\nSkipping over FAILED OBS in " + self.name)
+                print("\nSkipping over FAILED {0} in {1}".format(self.type.upper(), self.name))
                 if self.last_error:
                     print("FAILED for: " + self.last_error + "\n")
             return True
