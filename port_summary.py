@@ -27,6 +27,22 @@ from general_tools import file_utils
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
 RELOAD = False
 
+obs_converted_success = []
+obs_converted_error_misc = []
+obs_converted_error_missing = []
+obs_converted_error_not_converted = []
+tw_converted_success = []
+tw_converted_error_misc = []
+tw_converted_error_missing = []
+tw_converted_error_obs_failed = []
+tq_converted_success = []
+tq_converted_error_misc = []
+tn_converted_success = []
+tn_converted_error_misc = []
+tq_converted_error_obs_failed = []
+tn_converted_error_obs_failed = []
+unsupported_language_error = []
+
 
 def get_results_summary():
     out_dir = DESTINATION_FOLDER
@@ -56,61 +72,27 @@ def get_results_summary():
     if repo_results:
         print("\nFound {0} items".format(len(repo_results)))
 
-        obs_converted_success = []
-        obs_converted_error_misc = []
-        obs_converted_error_missing = []
-        obs_converted_error_not_converted = []
-        tw_converted_success = []
-        tw_converted_error_misc = []
-        tw_converted_error_missing = []
-        tw_converted_error_obs_failed = []
-
         keys = list(repo_results.keys())
         keys.sort()
         for k in keys:
+            value = repo_results[k]
             if k.find("_obs") >= 0:
-                value = repo_results[k]
-                del repo_results[k]
-                success = get_key(value, 'obs_success', False)
-                error = get_key(value, 'obs_error', None)
+                get_obs_summary(repo_results, k, value)
 
-                if success:
-                    obs_converted_success.append(value)
+            elif k.find("_tw") >= 0:
+                get_tw_summary(repo_results, k, value)
 
-                elif error:
-                    if error.find('downloading front and back matter') >= 0:
-                        obs_converted_error_missing.append(value)
+            elif k.find("_tq") >= 0:
+                get_tq_summary(repo_results, k, value)
 
-                    elif error.find('Title not converted error') >= 0:
-                        obs_converted_error_not_converted.append(value)
+            elif k.find("_tn") >= 0:
+                get_tn_summary(repo_results, k, value)
 
-                    else:
-                        obs_converted_error_misc.append(value)
-
-                else:
-                    obs_converted_error_misc.append(value)
-
-            if k.find("_tw") >= 0:
-                value = repo_results[k]
-                del repo_results[k]
-                success = get_key(value, 'tw_success', False)
-                error = get_key(value, 'tw_error', None)
-
-                if success:
-                    tw_converted_success.append(value)
-
-                elif error:
-                    if error.find('Downloading kt file names') >= 0:
-                        tw_converted_error_missing.append(value)
-
-                    elif error.find('Skipping over TW since OBS Failed') >= 0:
-                        tw_converted_error_obs_failed.append(value)
-
-                    else:
-                        tw_converted_error_misc.append(value)
-
-                else:
-                    tw_converted_error_misc.append(value)
+            else:
+                error = get_key(value, 'error', None)
+                if error.find('Skipping over unsupported language') >= 0:
+                    del repo_results[k]
+                    unsupported_language_error.append(value)
 
         print_results_list('OBS Successes', obs_converted_success, 'obs_error')
         print_results_list('OBS Missing front/back', obs_converted_error_missing, 'obs_error')
@@ -120,8 +102,99 @@ def get_results_summary():
         print_results_list('TW missing files', tw_converted_error_missing, 'tw_error')
         print_results_list('TW failed OBS', tw_converted_error_obs_failed, 'tw_error')
         print_results_list('TW Other Errors', tw_converted_error_misc, 'tw_error', detail=True)
+        print_results_list('TQ Successes', tq_converted_success, 'tq_error')
+        print_results_list('TQ failed OBS', tq_converted_error_obs_failed, 'tq_error')
+        print_results_list('TQ Other Errors', tq_converted_error_misc, 'tq_error', detail=True)
+        print_results_list('TN Successes', tn_converted_success, 'tn_error')
+        print_results_list('TN failed OBS', tn_converted_error_obs_failed, 'tn_error')
+        print_results_list('TN Other Errors', tn_converted_error_misc, 'tn_error', detail=True)
 
+    print_results_list('Unsupported language errors', unsupported_language_error, 'error')
     print_results_dict('Unrecognized items', repo_results, 'error', detail=True)
+
+
+def get_tn_summary(repo_results, key, value):
+    del repo_results[key]
+    success = get_key(value, 'tn_success', False)
+    error = get_key(value, 'tn_error', None)
+    if success:
+        tn_converted_success.append(value)
+
+    elif error:
+        # if error.find('Downloading kt file names') >= 0:
+        #     tw_converted_error_missing.append(value)
+        #
+        if error.find('Skipping over TN since OBS Failed') >= 0:
+            tn_converted_error_obs_failed.append(value)
+
+        else:
+            tn_converted_error_misc.append(value)
+
+    else:
+        tn_converted_error_misc.append(value)
+
+
+def get_tq_summary(repo_results, key, value):
+    del repo_results[key]
+    success = get_key(value, 'tq_success', False)
+    error = get_key(value, 'tq_error', None)
+    if success:
+        tq_converted_success.append(value)
+
+    elif error:
+        # if error.find('Downloading kt file names') >= 0:
+        #     tw_converted_error_missing.append(value)
+        #
+        if error.find('Skipping over TQ since OBS Failed') >= 0:
+            tq_converted_error_obs_failed.append(value)
+
+        else:
+            tq_converted_error_misc.append(value)
+
+    else:
+        tq_converted_error_misc.append(value)
+
+
+def get_tw_summary(repo_results, key, value):
+    del repo_results[key]
+    success = get_key(value, 'tw_success', False)
+    error = get_key(value, 'tw_error', None)
+    if success:
+        tw_converted_success.append(value)
+
+    elif error:
+        if error.find('Downloading kt file names') >= 0:
+            tw_converted_error_missing.append(value)
+
+        elif error.find('Skipping over TW since OBS Failed') >= 0:
+            tw_converted_error_obs_failed.append(value)
+
+        else:
+            tw_converted_error_misc.append(value)
+
+    else:
+        tw_converted_error_misc.append(value)
+
+
+def get_obs_summary(repo_results, key, value):
+    del repo_results[key]
+    success = get_key(value, 'obs_success', False)
+    error = get_key(value, 'obs_error', None)
+    if success:
+        obs_converted_success.append(value)
+
+    elif error:
+        if error.find('downloading front and back matter') >= 0:
+            obs_converted_error_missing.append(value)
+
+        elif error.find('Title not converted error') >= 0:
+            obs_converted_error_not_converted.append(value)
+
+        else:
+            obs_converted_error_misc.append(value)
+
+    else:
+        obs_converted_error_misc.append(value)
 
 
 def print_results_dict(msg, results_list, error_key, detail=False):

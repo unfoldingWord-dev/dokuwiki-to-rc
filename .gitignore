@@ -1,7 +1,7 @@
 .idea/
 *.iml
 *.pyc
-github_api_token
+github_api_token*
 src/
 .coverage
 dokuwiki_to_rc.egg-info/
