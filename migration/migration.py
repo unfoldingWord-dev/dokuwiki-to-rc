@@ -88,18 +88,21 @@ class Migration(object):
         self.save_results()
 
     def is_conversion_needed(self, sub_path):
-        exists = os.path.exists(os.path.join(self.destination, sub_path))
+        converted_content_exists = os.path.exists(os.path.join(self.destination, sub_path))
         results = self.read_results()
         last_success = False if not results else results[self.success_key]
         self.last_success = last_success
         self.last_error = None if not results else results[self.error_key]
 
         convert = False
-        if exists:
+        if converted_content_exists:
             if not last_success and self.retry_failures:   # if last conversion failed, retry if selected
                 convert = True
-            # convert = True  # TODO remove force
-        else:
+
+            if not results:  # if there are no results, redo conversion
+                convert = True
+
+        else:  # converted content does not exist
             if not results:  # if there are no results, presume this is new conversion
                 convert = True
 

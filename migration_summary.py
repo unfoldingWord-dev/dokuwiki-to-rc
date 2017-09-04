@@ -12,9 +12,7 @@
 #
 
 ####################################################################################################
-# setup: copy auth_token.py.example to auth_token.py and edit to set user and toke from github
-#  see https://github.com/blog/1509-personal-api-tokens for how to create a token and set the scope to
-#    'public_repo'
+# show summary of all OBS migrations in ../ConvertedDokuWiki
 ####################################################################################################
 
 from __future__ import unicode_literals
@@ -25,7 +23,7 @@ import sys
 from general_tools import file_utils
 
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
-RELOAD = False
+RELOAD = False  # set to True to refresh master list from each conversion summary
 
 obs_converted_success = []
 obs_converted_error_misc = []

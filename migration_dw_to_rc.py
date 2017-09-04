@@ -12,6 +12,7 @@
 #
 
 ####################################################################################################
+# Convert all OBS repos on github.com/Door43 from DokuWiki to Resource containers in ../ConvertedDokuWiki
 #
 # setup: get token from github and save in file 'github_api_token'
 #  see https://github.com/blog/1509-personal-api-tokens for how to create a token and set the scope to
@@ -34,6 +35,60 @@ REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
 RETRY_FAILURES = False
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
 access_token = None
+valid_repos = None
+
+
+def convert_door43_repos(source):
+    source_url = source
+    out_dir = DESTINATION_FOLDER
+    file_utils.make_dir(out_dir)
+    results_file = os.path.join(out_dir, "results.json")
+    door43_repos = file_utils.load_json_object(results_file)
+
+    while source_url:
+        print("\nOpening: " + source_url + "\n")
+        door43_repos_str, link = get_url(source_url)
+        door43_repo_list = json.loads(door43_repos_str)
+        for repo in door43_repo_list:
+            migrate_repo(repo, results_file, door43_repos, out_dir)
+        source_url = get_next_link(link)
+
+    print(len(door43_repos))
+
+
+def migrate_repo(repo, results_file, door43_repos, out_dir):
+    name = repo['name']
+    if name[:4] != 'd43-':
+        msg = "Skipping over invalid d43 repo name: {0}\n".format(name)
+        log_error(results_file, door43_repos, name, msg)
+        return
+
+    lang_code = name[4:]
+
+    # if lang_code != 'en':
+    #     return
+
+    if lang_code not in valid_repos:
+        msg = "Skipping over unsupported language: {0}\n".format(name)
+        log_error(results_file, door43_repos, name, msg)
+        lang_folder = os.path.join(out_dir, lang_code)
+        shutil.rmtree(lang_folder, ignore_errors=True)  # make sure nothing left over from previous attempts
+        return
+
+    data = get_repo_data(name, out_dir, repo)
+    if not data:
+        msg = "Error getting data for: {0}\n".format(name)
+        log_error(results_file, door43_repos, name, msg)
+        return
+
+    for migration_class in [OBS_Migration, TW_Migration, TQ_Migration, TN_Migration]:
+        migration = migration_class(data, RETRY_FAILURES)
+        migration_name = name + '_' + migration.type
+        door43_repos[migration_name] = data
+        success = migration.run()
+        if migration.final_data:  # update with final data
+            door43_repos[migration_name] = migration.final_data
+        file_utils.write_file(results_file, door43_repos)
 
 
 def get_url(url):
@@ -55,50 +110,6 @@ def get_next_link(links):
         next = links['next']
         return next['url']
     return None
-
-
-def convert_door43_repos(source):
-    source_url = source
-    out_dir = DESTINATION_FOLDER
-    file_utils.make_dir(out_dir)
-    results_file = os.path.join(out_dir, "results.json")
-    door43_repos = file_utils.load_json_object(results_file)
-    valid_repos = file_utils.read_file("valid_repo_list.txt").replace('\r','').split('\n')
-    while source_url:
-        print("\nOpening: " + source_url + "\n")
-        door43_repos_str, link = get_url(source_url)
-        door43_repo_list = json.loads(door43_repos_str)
-        for repo in door43_repo_list:
-            name = repo['name']
-            if name[:4] != 'd43-':
-                msg = "Skipping over invalid d43 repo name: {0}\n".format(name)
-                log_error(results_file, door43_repos, name, msg)
-                continue
-            lang_code = name[4:]
-            if lang_code not in valid_repos:
-                msg = "Skipping over unsupported language: {0}\n".format(name)
-                log_error(results_file, door43_repos, name, msg)
-                lang_folder = os.path.join(out_dir, lang_code)
-                shutil.rmtree(lang_folder, ignore_errors=True)  # make sure nothing left over from previous attempts
-                continue
-
-            data = get_repo_data(name, out_dir, repo)
-            if not data:
-                msg = "Error getting data for: {0}\n".format(name)
-                log_error(results_file, door43_repos, name, msg)
-                continue
-
-            for migration_class in [OBS_Migration, TW_Migration, TQ_Migration, TN_Migration]:
-                migration = migration_class(data, RETRY_FAILURES)
-                migration_name = name + '_' + migration.type
-                door43_repos[migration_name] = data
-                success = migration.run()
-                if migration.final_data:  # update with final data
-                    door43_repos[migration_name] = migration.final_data
-                file_utils.write_file(results_file, door43_repos)
-
-        source_url = get_next_link(link)
-    print(len(door43_repos))
 
 
 def log_error(results_file, door43_repos, name, msg):
@@ -136,5 +147,6 @@ if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
+    valid_repos = file_utils.read_file("valid_repo_list.txt").replace('\r','').split('\n')
     access_token = file_utils.read_file("github_api_token")
     convert_door43_repos(REPOS_SOURCE)
