@@ -29,7 +29,7 @@ from general_tools import file_utils
 
 HOST_NAME = 'https://aws.door43.org'
 RETRY_FAILURES = False
-DESTINATION_FOLDER = '../ConvertedDokuWiki'
+MIGRATION_FOLDER = '../ConvertedDokuWiki'
 DESTINATION_ORG = 'DokuWiki'
 access_token = None
 
@@ -64,7 +64,7 @@ def post_url(url, data):
 
 def upload_repos():
 
-    upload_migration(DESTINATION_ORG, 'en', 'obs', ignore_if_exists=True)
+    upload_language_migrations(DESTINATION_ORG, 'en')
 
     # url = HOST_NAME + '/api/v1/repos/Door43/repos'
     # # url = HOST_NAME + '/api/v1/user/repos'
@@ -77,8 +77,14 @@ def upload_repos():
     # found4 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
 
 
+def upload_language_migrations(org, lang):
+    upload_migration(org, lang, 'obs')
+    upload_migration(org, lang, 'tq', ignore_if_exists=True)
+    upload_migration(org, lang, 'tw')
+    upload_migration(org, lang, 'tn')
+
 def upload_migration(org, lang, type, ignore_if_exists=False):
-    source_repo_name = os.path.join(DESTINATION_FOLDER, lang, type)
+    source_repo_name = os.path.join(MIGRATION_FOLDER, lang, type)
     if not os.path.exists(source_repo_name):
         print("Migrated repo {0} not found".format(source_repo_name))
         return False
@@ -99,7 +105,7 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
 
     success = True
 
-    # success = run_git(['init', '.'],source_repo_name)
+    success = run_git(['init', '.'], source_repo_name)
     if not success:
         print("git init {0} failed".format(source_repo_name))
         return False
