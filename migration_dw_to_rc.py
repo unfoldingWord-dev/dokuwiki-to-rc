@@ -83,7 +83,8 @@ def migrate_repo(repo, results_file, door43_repos, out_dir):
         log_error(results_file, door43_repos, name, msg)
         return
 
-    for migration_class in [OBS_Migration, TW_Migration, TQ_Migration, TN_Migration]:
+    # for migration_class in [OBS_Migration, TW_Migration, TQ_Migration, TN_Migration]:
+    for migration_class in [OBS_Migration, TQ_Migration, TN_Migration]:
         migration = migration_class(data, RETRY_FAILURES)
         migration_name = name + '_' + migration.type
         door43_repos[migration_name] = data

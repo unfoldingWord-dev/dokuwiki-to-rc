@@ -77,14 +77,19 @@ def upload_repos():
     # found4 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
 
 
-def upload_language_migrations(org, lang):
-    upload_migration(org, lang, 'obs')
-    upload_migration(org, lang, 'tq', ignore_if_exists=True)
-    upload_migration(org, lang, 'tw')
-    upload_migration(org, lang, 'tn')
+def upload_language_migrations(org, lang, ignore_if_exists=False):
+    print("migrating " + lang)
+    success = upload_migration(org, lang, 'obs', ignore_if_exists=ignore_if_exists)
+    success = success or upload_migration(org, lang, 'tq', ignore_if_exists=ignore_if_exists)
+    # success = success or upload_migration(org, lang, 'tw', ignore_if_exists=ignore_if_exists)
+    success = success or upload_migration(org, lang, 'tn', ignore_if_exists=ignore_if_exists)
+    if not success:
+        print("language migration failed for " + lang)
+        return False
 
 def upload_migration(org, lang, type, ignore_if_exists=False):
     source_repo_name = os.path.join(MIGRATION_FOLDER, lang, type)
+    print("migrating " + source_repo_name)
     if not os.path.exists(source_repo_name):
         print("Migrated repo {0} not found".format(source_repo_name))
         return False
@@ -96,6 +101,7 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
     repo_exists = isRepoPresent(org, destination_repo_name)
     if not repo_exists:
         created = createRepoInOrganization(org, destination_repo_name)
+        print("Creating Repo {0}/{1}".format(org, destination_repo_name))
         if not created:
             print("Repo {0}/{1} creation failure".format(org, destination_repo_name))
             return False
@@ -135,6 +141,7 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
 
 
 def run_git(params, working_folder):
+    print("Doing git {0}".format(params[0]))
     initial_dir = os.path.abspath(os.curdir)
     os.chdir(working_folder)
     command = ['git'] + params
