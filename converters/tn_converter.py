@@ -2,10 +2,11 @@ from __future__ import print_function, unicode_literals
 import json
 import os
 import re
+import shutil
+from datetime import datetime
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
 from resource_container import factory
-
 from converters.common import quiet_print, dokuwiki_to_markdown, NewResourceManifest, ResourceManifestEncoder
 from converters.unicode_utils import to_str
 
@@ -99,29 +100,60 @@ class TNConverter(object):
         # get the status
         uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
         status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
-        manifest = NewResourceManifest('obs-tn', 'OBS translationNotes')
-        manifest.resource['status']['pub_date'] = status['publish_date']
-        manifest.resource['status']['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
-        manifest.resource['status']['checking_level'] = status['checking_level']
-        manifest.resource['status']['comments'] = status['comments']
-        manifest.resource['status']['version'] = status['version']
-        manifest.resource['status']['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
 
-        manifest.resource['status']['source_translations'].append({
-            'language_slug': status['source_text'],
-            'resource_slug': 'obs',
-            'version': status['source_text_version']
-        })
-
-        manifest.language['slug'] = lang_code
-        manifest.language['name'] = self.lang_data['ang']
-        manifest.language['dir'] = self.lang_data['ld']
+        self.trying = 'creating manifest'
+        title = 'OBS translationNotes'
+        manifest = {
+            'dublin_core': {
+                'title': title,
+                'type': 'help',
+                'format': 'text/markdown',
+                'contributor': [
+                    'Door43 World Missions Community'
+                ],
+                'creator': 'Door43 World Missions Community',
+                'description': 'Open-licensed exegetical notes that provide historical, cultural, and linguistic information for translators. It provides translators and checkers with pertinent, just-in-time information to help them make the best possible translation decisions.',
+                'identifier': 'obs-tn',
+                'language': {
+                    'direction': self.lang_data['ld'],
+                    'identifier': status['source_text'],
+                    'title': self.lang_data['ang']
+                },
+                'modified': datetime.today().strftime('%Y-%m-%d'),
+                'publisher': 'unfoldingWord',
+                'relation': [
+                    'en/obs'
+                ],
+                'source': [{
+                    'identifier': 'obs-tn',
+                    'language': status['source_text'],
+                    'version': status['source_text_version']
+                }],
+                'subject': 'Translator Notes',
+                'version': status['version'],
+                'issued': status['publish_date'],
+                'rights': 'CC BY-SA 4.0'
+            },
+            'checking': {
+                'checking_entity': re.split(r'\s*;\s*|\s*,\s*', status['checking_entity']),
+                'checking_level': status['checking_level']
+            },
+            'projects': [{
+                'categories': [],
+                'identifier': 'obs',
+                'path': './content',
+                'sort': 0,
+                'title': title,
+                'versification': '"ufw"'
+            }]
+        }
 
         manifest = to_str(manifest)
-        rc = factory.create(self.out_dir, manifest)
-
-        # manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
-        # write_file(os.path.join(self.out_dir, 'package.json'), manifest_str)
+        rc_folder = os.path.join(self.out_dir, 'rc')
+        shutil.rmtree(rc_folder, ignore_errors=True)
+        rc = factory.create(rc_folder, manifest)
+        shutil.move(os.path.join(rc_folder, 'manifest.yaml'), self.out_dir)
+        shutil.rmtree(rc_folder, ignore_errors=True)
 
     def download_frame_file(self, url_to_download, out_dir):
         dw_filename = url_to_download.rsplit('/', 1)[1]

@@ -19,7 +19,7 @@ class OBS_Migration(Migration):
         return OBSConverter(lang_code, git_repo, out_dir, quiet, flat_format=True)
 
     def save_results(self):
-        super(OBS_Migration,self).save_results()
+        super(OBS_Migration, self).save_results()
 
         # remove dependent results
         self.remove_results_file("tw_results.json")

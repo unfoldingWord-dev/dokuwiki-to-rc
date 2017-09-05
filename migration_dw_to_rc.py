@@ -36,7 +36,7 @@ RETRY_FAILURES = False
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
 access_token = None
 valid_repos = None
-
+start_page = 0  # query page to start at
 
 def convert_door43_repos(source):
     source_url = source
@@ -47,13 +47,23 @@ def convert_door43_repos(source):
 
     while source_url:
         print("\nOpening: " + source_url + "\n")
-        door43_repos_str, link = get_url(source_url)
-        door43_repo_list = json.loads(door43_repos_str)
+        door43_repo_list, link = get_next_page(source_url)
         for repo in door43_repo_list:
             migrate_repo(repo, results_file, door43_repos, out_dir)
         source_url = get_next_link(link)
 
     print(len(door43_repos))
+
+
+def get_next_page(source_url):
+    params = None
+    global start_page
+    if start_page:
+        params = {'page': str(start_page)}
+        start_page = 0
+    door43_repos_str, link = get_url(source_url, params=params)
+    door43_repo_list = json.loads(door43_repos_str)
+    return door43_repo_list, link
 
 
 def migrate_repo(repo, results_file, door43_repos, out_dir):
@@ -92,15 +102,17 @@ def migrate_repo(repo, results_file, door43_repos, out_dir):
         file_utils.write_file(results_file, door43_repos)
 
 
-def get_url(url):
+def get_url(url, params=None):
     """
     :param str|unicode url: URL to open
     :param bool catch_exception: If <True> catches all exceptions and returns <False>
     :return tuple of file contents and header Link
     """
-    params = {
-        'access_token': access_token
-    }
+
+    if not params:
+        params = {}
+
+    params['access_token'] = access_token
 
     response = requests.get(url, params=params)
     return response.text, response.links

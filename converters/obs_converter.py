@@ -123,7 +123,7 @@ class OBSConverter(object):
             'dublin_core': {
                 'title': title,
                 'type': 'book',
-                'format': manifest.content_mime_type,
+                'format': 'text/markdown',
                 'contributor': [
                     'Distant Shores Media',
                     'Door43 World Missions Community'

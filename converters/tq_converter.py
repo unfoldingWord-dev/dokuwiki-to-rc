@@ -5,12 +5,12 @@ import inspect
 import json
 import os
 import re
+import shutil
+from datetime import datetime
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
 from resource_container import factory
-
-from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder, \
-    NewResourceManifest
+from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder
 from converters.unicode_utils import to_str
 
 
@@ -101,6 +101,10 @@ class TQConverter(object):
         bible_api_url = join_url_parts(base_url, 'contents/bible/questions/comprehension')
         obs_api_url = join_url_parts(base_url, 'contents/obs/notes/questions')
 
+        # get the status
+        uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
+        status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
+
         if self.bible_out_dir:
             self.trying = 'Downloading Bible tQ list'
             quiet_print(self.quiet, 'Downloading Bible tQ list.')
@@ -135,32 +139,58 @@ class TQConverter(object):
             for url in obs_list:
                 self.download_obs_file(url, target_dir)
 
-            # get the status
-            uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
-            status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
-            manifest = NewResourceManifest('obs-tq', 'OBS translationQuestions')
-            manifest.resource['status']['pub_date'] = status['publish_date']
-            manifest.resource['status']['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
-            manifest.resource['status']['checking_level'] = status['checking_level']
-            manifest.resource['status']['comments'] = status['comments']
-            manifest.resource['status']['version'] = status['version']
-            manifest.resource['status']['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
-
-            manifest.resource['status']['source_translations'].append({
-                'language_slug': status['source_text'],
-                'resource_slug': 'obs',
-                'version': status['source_text_version']
-            })
-
-            manifest.language['slug'] = lang_code
-            manifest.language['name'] = self.lang_data['ang']
-            manifest.language['dir'] = self.lang_data['ld']
+            title = 'OBS translationQuestions'
+            manifest = {
+                'dublin_core': {
+                    'title': title,
+                    'type': 'help',
+                    'format': 'text/markdown',
+                    'contributor': [
+                        'Door43 World Missions Community'
+                    ],
+                    'creator': 'Door43 World Missions Community',
+                    'description': 'Comprehension and theological questions for Open Bible Stories. It enables translators and translation checkers to confirm that the intended meaning of their translations is clearly communicated to the speakers of that language.',
+                    'identifier': 'obs-tq',
+                    'language': {
+                        'direction': self.lang_data['ld'],
+                        'identifier': status['source_text'],
+                        'title': self.lang_data['ang']
+                    },
+                    'modified': datetime.today().strftime('%Y-%m-%d'),
+                    'publisher': 'unfoldingWord',
+                    'relation': [
+                        'en/obs'
+                    ],
+                    'source': [{
+                        'identifier': 'obs-tq',
+                        'language': status['source_text'],
+                        'version': status['source_text_version']
+                    }],
+                    'subject': 'Translator Questions',
+                    'version': status['version'],
+                    'issued': status['publish_date'],
+                    'rights': 'CC BY-SA 4.0'
+                },
+                'checking': {
+                    'checking_entity': re.split(r'\s*;\s*|\s*,\s*', status['checking_entity']),
+                    'checking_level': status['checking_level']
+                },
+                'projects': [{
+                    'categories': [],
+                    'identifier': 'obs',
+                    'path': './content',
+                    'sort': 0,
+                    'title': title,
+                    'versification': '"ufw"'
+                }]
+            }
 
             manifest = to_str(manifest)
-            rc = factory.create(self.out_dir, manifest)
-
-            # manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
-            # write_file(os.path.join(self.obs_out_dir, 'manifest.json'), manifest_str)
+            rc_folder = os.path.join(self.obs_out_dir, 'rc')
+            shutil.rmtree(rc_folder, ignore_errors=True)
+            rc = factory.create(rc_folder, manifest)
+            shutil.move(os.path.join(rc_folder, 'manifest.yaml'), self.obs_out_dir)
+            shutil.rmtree(rc_folder, ignore_errors=True)
 
     def process_api_request(self, url):
 

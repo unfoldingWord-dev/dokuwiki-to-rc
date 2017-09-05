@@ -194,7 +194,7 @@ def run_git(params, working_folder):
     initial_dir = os.path.abspath(os.curdir)
     os.chdir(working_folder)
     command = ['git'] + params
-    results = subprocess.run(command)
+    results = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     success = results.returncode == 0
     os.chdir(initial_dir)  # restore curdir
     return success
