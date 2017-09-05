@@ -32,6 +32,8 @@ from migration.tq_migration import TQ_Migration
 from migration.tw_migration import TW_Migration
 
 REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
+# last 'https://api.github.com/user/4982125/repos?access_token=6c43332ae15088332e458f4923697edf13b9c3b9&page=234'
+# REPOS_SOURCE = 'https://api.github.com/user/4982125/repos?access_token=6c43332ae15088332e458f4923697edf13b9c3b9&page=200'
 RETRY_FAILURES = False
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
 access_token = None

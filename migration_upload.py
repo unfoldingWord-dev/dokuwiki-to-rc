@@ -63,7 +63,7 @@ def post_url(url, data):
 
 def upload_repos():
 
-    url = HOST_NAME + '/api/v1/photonomad0/repos'
+    url = HOST_NAME + '/api/v1/repos/Door43/repos'
     # url = HOST_NAME + '/api/v1/user/repos'
     # url = HOST_NAME + '/api/v1/repos/search?q=php&uid=0&limit=75'
     # response = get_url(url)
