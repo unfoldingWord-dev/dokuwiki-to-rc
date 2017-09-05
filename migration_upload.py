@@ -30,6 +30,7 @@ from general_tools import file_utils
 HOST_NAME = 'https://aws.door43.org'
 RETRY_FAILURES = False
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
+DESTINATION_ORG = 'DokuWiki'
 access_token = None
 
 
@@ -68,10 +69,18 @@ def upload_repos():
     # url = HOST_NAME + '/api/v1/repos/search?q=php&uid=0&limit=75'
     # response = get_url(url)
 
-    found1 = isRepoPresent('Door43', 'en-obs')
-    found2 = isRepoPresent('Door43', 'en-obs2')
-    found3 = createRepo('Door43', 'en-obs2')
-    found4 = isRepoPresent('Door43', 'en-obs2')
+    found1 = isRepoPresent(DESTINATION_ORG, 'en-obs')
+    found2 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
+    found3 = createRepoInOrganization(DESTINATION_ORG, 'en-obs2')
+    found4 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
+
+
+def upload_migration(lang, type):
+    source_repo_name = os.path.join(DESTINATION_FOLDER, lang, type)
+    destination_repo_name = lang + '_obs'
+    if type != 'obs':
+        destination_repo_name += '-' + type
+
 
 def isRepoPresent(user, repo):
     url = HOST_NAME + '/api/v1/repos/{0}/{1}'.format(user, repo)
@@ -79,13 +88,31 @@ def isRepoPresent(user, repo):
     text = response.text
     if not text:
         return False
-    dict = json.loads(text)
-    return dict and (len(dict) > 0)
+    results = json.loads(text)
+    return results and (len(results) > 0)
 
-def createRepo(user, repo):
+
+def createRepoInOrganization(org, repo):
     """
     Note that user must be the same as the user for access_token
     :param user:
+    :param repo:
+    :return:
+    """
+    url = '{0}/api/v1/org/{1}/repos'.format(HOST_NAME, org)
+    data = 'name={0}'.format(repo)
+    response = post_url(url, data)
+    text = response.text
+    if text:
+        results = json.loads(text)
+        if results and 'full_name' in results:
+            full_name = '{0}/{1}'.format(org, repo)
+            return results['full_name'] == full_name
+    return False
+
+
+def createRepoForCurrentUser(repo):
+    """
     :param repo:
     :return:
     """
@@ -94,10 +121,10 @@ def createRepo(user, repo):
     response = post_url(url, data)
     text = response.text
     if text:
-        dict = json.loads(text)
-        if dict and 'full_name' in dict:
+        results = json.loads(text)
+        if results and 'full_name' in results:
             full_name = '{0}/{1}'.format(user, repo)
-            return dict['full_name'] == full_name
+            return results['full_name'] == full_name
     return False
 
 def upload_obs(lang):
