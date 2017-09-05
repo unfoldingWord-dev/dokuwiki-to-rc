@@ -24,7 +24,7 @@ import json
 import os
 import sys
 import requests
-import shutil
+import subprocess
 from general_tools import file_utils
 
 HOST_NAME = 'https://aws.door43.org'
@@ -64,22 +64,67 @@ def post_url(url, data):
 
 def upload_repos():
 
-    url = HOST_NAME + '/api/v1/repos/Door43/repos'
-    # url = HOST_NAME + '/api/v1/user/repos'
-    # url = HOST_NAME + '/api/v1/repos/search?q=php&uid=0&limit=75'
-    # response = get_url(url)
+    upload_migration(DESTINATION_ORG, 'en', 'obs', ignore_if_exists=True)
 
-    found1 = isRepoPresent(DESTINATION_ORG, 'en-obs')
-    found2 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
-    found3 = createRepoInOrganization(DESTINATION_ORG, 'en-obs2')
-    found4 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
+    # url = HOST_NAME + '/api/v1/repos/Door43/repos'
+    # # url = HOST_NAME + '/api/v1/user/repos'
+    # # url = HOST_NAME + '/api/v1/repos/search?q=php&uid=0&limit=75'
+    # # response = get_url(url)
+    #
+    # found1 = isRepoPresent(DESTINATION_ORG, 'en-obs')
+    # found2 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
+    # found3 = createRepoInOrganization(DESTINATION_ORG, 'en-obs2')
+    # found4 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
 
 
-def upload_migration(lang, type):
+def upload_migration(org, lang, type, ignore_if_exists=False):
     source_repo_name = os.path.join(DESTINATION_FOLDER, lang, type)
+    if not os.path.exists(source_repo_name):
+        print("Migrated repo {0} not found".format(source_repo_name))
+        return False
+
     destination_repo_name = lang + '_obs'
     if type != 'obs':
         destination_repo_name += '-' + type
+
+    repo_exists = isRepoPresent(org, destination_repo_name)
+    if not repo_exists:
+        created = createRepoInOrganization(org, destination_repo_name)
+        if not created:
+            print("Repo {0}/{1} creation failure".format(org, destination_repo_name))
+            return False
+    elif not ignore_if_exists:
+        print("Repo {0}/{1} already exists".format(org, destination_repo_name))
+        return False
+
+    success = True
+
+    # success = run_git(['init', '.'],source_repo_name)
+    if not success:
+        print("git init {0} failed".format(source_repo_name))
+        return False
+
+    success = run_git(['add', '.'], source_repo_name)
+    if not success:
+        print("git add {0} failed".format(source_repo_name))
+        return False
+
+    success = run_git(['commit', '-m "first commit"'], source_repo_name)
+    if not success:
+        print("git commit {0} failed".format(source_repo_name))
+        return False
+
+    print(success)
+
+
+def run_git(params, working_folder):
+    initial_dir = os.path.abspath(os.curdir)
+    os.chdir(working_folder)
+    command = ['git'] + params
+    results = subprocess.run(command)
+    success = results.returncode == 0
+    os.chdir(initial_dir)  # restore curdir
+    return success
 
 
 def isRepoPresent(user, repo):
