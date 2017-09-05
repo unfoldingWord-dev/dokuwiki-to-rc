@@ -4,7 +4,10 @@ import os
 import re
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
+from resource_container import factory
+
 from converters.common import quiet_print, dokuwiki_to_markdown, NewResourceManifest, ResourceManifestEncoder
+from converters.unicode_utils import to_str
 
 
 class TNConverter(object):
@@ -114,8 +117,11 @@ class TNConverter(object):
         manifest.language['name'] = self.lang_data['ang']
         manifest.language['dir'] = self.lang_data['ld']
 
-        manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
-        write_file(os.path.join(self.out_dir, 'package.json'), manifest_str)
+        manifest = to_str(manifest)
+        rc = factory.create(self.out_dir, manifest)
+
+        # manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
+        # write_file(os.path.join(self.out_dir, 'package.json'), manifest_str)
 
     def download_frame_file(self, url_to_download, out_dir):
         dw_filename = url_to_download.rsplit('/', 1)[1]

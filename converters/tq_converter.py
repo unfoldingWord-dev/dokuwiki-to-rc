@@ -7,7 +7,11 @@ import os
 import re
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
-from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder
+from resource_container import factory
+
+from converters.common import quiet_print, dokuwiki_to_markdown, ResourceManifest, ResourceManifestEncoder, \
+    NewResourceManifest
+from converters.unicode_utils import to_str
 
 
 class TQConverter(object):
@@ -20,6 +24,9 @@ class TQConverter(object):
     story_num_re = re.compile(r'(Story )#', re.UNICODE)
     navigate_re = re.compile(r'\[\[:en:obs:notes:questions:(.*?)\|\s*(.*?)\s*\]\]', re.UNICODE)
     navigate2_re = re.compile(r'\[\[en/obs/notes/questions/(.*?)\|\s*(.*?)\s*\]\]', re.UNICODE)
+    html_tag_re = re.compile(r'<.*?>', re.UNICODE)
+    link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
+    langs = None
 
     def __init__(self, lang_code, git_repo, bible_out_dir, obs_out_dir, quiet):
         """
@@ -40,9 +47,15 @@ class TQConverter(object):
             raise Exception('Currently only github repositories are supported.')
 
         # get the language data
-        quiet_print(self.quiet, 'Downloading language data...', end=' ')
-        langs = get_languages()
-        quiet_print(self.quiet, 'finished.')
+        if TQConverter.langs:  # check if cached
+            langs = TQConverter.langs
+        else:
+            try:
+                quiet_print(self.quiet, 'Downloading language data...', end=' ')
+                langs = get_languages()
+                TQConverter.langs = langs
+            finally:
+                quiet_print(self.quiet, 'finished.')
 
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
@@ -122,17 +135,32 @@ class TQConverter(object):
             for url in obs_list:
                 self.download_obs_file(url, target_dir)
 
-            manifest = ResourceManifest('obs-tq', 'OBS translationQuestions')
-            manifest.status['checking_level'] = '3'
-            manifest.status['version'] = '3'
-            manifest.status['checking_entity'] = 'Wycliffe Associates'
+            # get the status
+            uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
+            status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
+            manifest = NewResourceManifest('obs-tq', 'OBS translationQuestions')
+            manifest.resource['status']['pub_date'] = status['publish_date']
+            manifest.resource['status']['contributors'] = re.split(r'\s*;\s*|\s*,\s*', status['contributors'])
+            manifest.resource['status']['checking_level'] = status['checking_level']
+            manifest.resource['status']['comments'] = status['comments']
+            manifest.resource['status']['version'] = status['version']
+            manifest.resource['status']['checking_entity'] = re.split(r'\s*;\s*|\s*,\s*', status['checking_entity'])
+
+            manifest.resource['status']['source_translations'].append({
+                'language_slug': status['source_text'],
+                'resource_slug': 'obs',
+                'version': status['source_text_version']
+            })
 
             manifest.language['slug'] = lang_code
             manifest.language['name'] = self.lang_data['ang']
             manifest.language['dir'] = self.lang_data['ld']
 
-            manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
-            write_file(os.path.join(self.obs_out_dir, 'manifest.json'), manifest_str)
+            manifest = to_str(manifest)
+            rc = factory.create(self.out_dir, manifest)
+
+            # manifest_str = json.dumps(manifest, sort_keys=False, indent=2, cls=ResourceManifestEncoder)
+            # write_file(os.path.join(self.obs_out_dir, 'manifest.json'), manifest_str)
 
     def process_api_request(self, url):
 
@@ -229,3 +257,30 @@ class TQConverter(object):
 
         write_file(save_as, md_text)
         quiet_print(self.quiet, 'finished.')
+
+    def clean_text(self, text):
+        """
+        Cleans up text from possible DokuWiki and HTML tag pollution.
+        """
+        if self.html_tag_re.search(text):
+            text = self.html_tag_re.sub('', text)
+        if self.link_tag_re.search(text):
+            text = self.link_tag_re.sub('', text)
+        return text
+
+    def get_json_dict(self, download_url):
+        return_val = {}
+        status_text = get_url(download_url)
+        status_text = status_text.replace('\r', '')
+        lines = filter(bool, status_text.split('\n'))
+
+        for line in lines:
+
+            if line.startswith('#') or line.startswith('\n') or line.startswith('{{') or ':' not in line:
+                continue
+
+            newline = self.clean_text(line)
+            k, v = newline.split(':', 1)
+            return_val[k.strip().lower().replace(' ', '_')] = v.strip()
+
+        return return_val

@@ -26,6 +26,7 @@ import sys
 import requests
 import subprocess
 from general_tools import file_utils
+from general_tools.file_utils import write_file
 
 HOST_NAME = 'https://aws.door43.org'
 RETRY_FAILURES = False
@@ -98,46 +99,94 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
     if type != 'obs':
         destination_repo_name += '-' + type
 
+    results_file = os.path.join(source_repo_name, '..', type + '_upload.json')
+    upload = is_upload_needed(results_file, source_repo_name)
+    if not upload:
+        return False
+
     repo_exists = isRepoPresent(org, destination_repo_name)
     if not repo_exists:
         created = createRepoInOrganization(org, destination_repo_name)
         print("Creating Repo {0}/{1}".format(org, destination_repo_name))
         if not created:
-            print("Repo {0}/{1} creation failure".format(org, destination_repo_name))
+            error_log(results_file, "Repo {0}/{1} creation failure".format(org, destination_repo_name))
             return False
     elif not ignore_if_exists:
-        print("Repo {0}/{1} already exists".format(org, destination_repo_name))
+        error_log(results_file, "Repo {0}/{1} already exists".format(org, destination_repo_name))
         return False
-
-    success = True
 
     success = run_git(['init', '.'], source_repo_name)
     if not success:
-        print("git init {0} failed".format(source_repo_name))
+        error_log(results_file, "git init {0} failed".format(source_repo_name))
         return False
 
     success = run_git(['add', '.'], source_repo_name)
     if not success:
-        print("git add {0} failed".format(source_repo_name))
+        error_log(results_file, "git add {0} failed".format(source_repo_name))
         return False
 
     success = run_git(['commit', '-m "first commit"'], source_repo_name)
     if not success:
-        print("git commit {0} failed".format(source_repo_name))
+        error_log(results_file, "git commit {0} failed".format(source_repo_name))
         return False
 
     remote_repo = 'https://git.door43.org/DokuWiki/{0}.git'.format(destination_repo_name)
     success = run_git(['remote', 'add', 'origin', remote_repo], source_repo_name)
     if not success:
-        print("git commit {0} failed".format(source_repo_name))
+        error_log(results_file, "git commit {0} failed".format(source_repo_name))
         return False
 
     success = run_git(['push', 'origin', 'master'], source_repo_name)
     if not success:
-        print("git commit {0} failed".format(source_repo_name))
+        error_log(results_file, "git commit {0} failed".format(source_repo_name))
         return False
 
-    print(success)
+    save_success(results_file)
+    return True
+
+
+def is_upload_needed(results_file, source_repo_name, retry_on_error=False):
+    try:
+        content_path = os.path.join(source_repo_name, 'content')
+        if not os.path.exists(content_path):
+            print("skipping since no content")
+            return False
+
+        previous_results = file_utils.load_json_object(results_file)
+        success = previous_results['success']
+        if success:
+            print("already uploaded")
+            return False
+
+        if not retry_on_error:
+            error = 'unknown' if 'error' not in previous_results else previous_results['error']
+            print("Skipping due to previous upload error: " + error)
+            return False
+
+    except:
+        pass
+
+    return True
+
+
+def error_log(results_file, msg):
+    data = {
+        'success': False,
+        'error': msg
+    }
+    save_results(results_file, data)
+    print("ERROR: " + msg)
+
+
+def save_success(results_file):
+    data = {
+        'success': True
+    }
+    save_results(results_file, data)
+
+
+def save_results(results_file, data):
+    write_file(results_file, data)
 
 
 def run_git(params, working_folder):

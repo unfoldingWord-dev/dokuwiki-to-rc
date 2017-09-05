@@ -40,6 +40,12 @@ class Migration(object):
         path = self.get_results_path()
         self.final_data = self.data
         file_utils.write_file(path, self.data)
+        self.remove_results_file(self.results_prefix + "upload.json")
+
+    def remove_results_file(self, results_name):
+        upload_path = os.path.join(self.lang_folder, results_name)
+        if os.path.exists(upload_path):
+            os.remove(upload_path)
 
     def clear_results(self):
         path = self.get_results_path()

@@ -126,10 +126,10 @@ class OBSConverter(object):
                 'format': manifest.content_mime_type,
                 'contributor': [
                     'Distant Shores Media',
-                    'Wycliffe Associates'
+                    'Door43 World Missions Community'
                 ],
                 'creator': 'Distant Shores Media',
-                'description': 'An unrestricted visual mini-Bible in any language',
+                'description': '50 key stories of the Bible, from Creation to Revelation, for evangelism & discipleship, in text, audio, and video, on any mobile phone, in any language, for free. It increases understanding of the historical and redemptive narrative of the entire Bible.',
                 'identifier': manifest.resource['slug'],
                 'language': {
                     'direction': self.lang_data['ld'],
