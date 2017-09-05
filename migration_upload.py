@@ -114,6 +114,17 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
         print("git commit {0} failed".format(source_repo_name))
         return False
 
+    remote_repo = 'https://git.door43.org/DokuWiki/{0}.git'.format(destination_repo_name)
+    success = run_git(['remote', 'add', 'origin', remote_repo], source_repo_name)
+    if not success:
+        print("git commit {0} failed".format(source_repo_name))
+        return False
+
+    success = run_git(['push', 'origin', 'master'], source_repo_name)
+    if not success:
+        print("git commit {0} failed".format(source_repo_name))
+        return False
+
     print(success)
 
 
