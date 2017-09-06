@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 import codecs
 import os
 import re
+from general_tools import file_utils
 from general_tools.file_utils import write_file, make_dir
 from general_tools.url_utils import get_languages, join_url_parts, get_url
 from obs.obs_classes import OBS, OBSManifest, OBSSourceTranslation, OBSManifestEncoder
@@ -30,7 +31,7 @@ class OBSConverter(object):
     image_re = re.compile(r'^\!\[', re.UNICODE | re.MULTILINE)
     langs = None
 
-    def __init__(self, lang_code, git_repo, out_dir, quiet, flat_format=False):
+    def __init__(self, lang_code, git_repo, out_dir, quiet, flat_format=False, ignore_lang_code_error=False):
         """
 
         :param unicode lang_code:
@@ -60,7 +61,14 @@ class OBSConverter(object):
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
         if not self.lang_data:
-            raise Exception('Information for language "{0}" was not found.'.format(lang_code))
+            if ignore_lang_code_error:
+                self.lang_data = {  # default language data
+                    'lc': lang_code,
+                    'direction': '',
+                    'title': lang_code
+                }
+            else:
+                raise Exception('Information for language "{0}" was not found.'.format(lang_code))
 
         self.flat_format = flat_format
         self.trying = 'Init'
@@ -111,11 +119,8 @@ class OBSConverter(object):
         for i in range(1, 51):
             files_to_download.append(str(i).zfill(2) + '.txt')
 
-        # get the status
-        uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
-        status_path = join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt')
-        self.trying = 'getting UW status (' + status_path + ')'
-        status = self.get_json_dict(status_path)
+        status = self.get_uw_status(lang_code)
+
         manifest = OBSManifest()
 
         self.trying = 'creating manifest'
@@ -190,6 +195,17 @@ class OBSConverter(object):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         shutil.copy(os.path.join(dir_path, 'OBS_LICENSE.md'), os.path.join(self.out_dir, 'LICENSE.md'))
 
+    def get_uw_status(self, lang_code):
+        uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
+        status_path = join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt')
+        self.trying = 'getting UW status (' + status_path + ')'
+        try:
+            status = self.get_json_dict_from_url(status_path)
+        except:
+            print("UW Status not found, using defaults")
+            status = self.get_json_dict_from_file('default_uw_status.txt')
+        return status
+
     def chunk_chapter(self, rc, chapter_file, chapter):
         with codecs.open(chapter_file, 'r', encoding='utf-8') as in_file:
             data = in_file.read()
@@ -258,12 +274,18 @@ class OBSConverter(object):
             text = self.link_tag_re.sub('', text)
         return text
 
-    def get_json_dict(self, download_url):
-        return_val = {}
+    def get_json_dict_from_url(self, download_url):
         status_text = get_url(download_url)
+        return self.parse_data_file(status_text)
+
+    def get_json_dict_from_file(self, file_path):
+        status_text = file_utils.read_file(file_path)
+        return self.parse_data_file(status_text)
+
+    def parse_data_file(self, status_text):
+        return_val = {}
         status_text = status_text.replace('\r', '')
         lines = filter(bool, status_text.split('\n'))
-
         for line in lines:
 
             if line.startswith('#') or line.startswith('\n') or line.startswith('{{') or ':' not in line:
@@ -272,7 +294,6 @@ class OBSConverter(object):
             newline = self.clean_text(line)
             k, v = newline.split(':', 1)
             return_val[k.strip().lower().replace(' ', '_')] = v.strip()
-
         return return_val
 
     def test_for_translated_title(self, text):

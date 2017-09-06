@@ -33,7 +33,7 @@ RETRY_FAILURES = False
 MIGRATION_FOLDER = '../ConvertedDokuWiki'
 DESTINATION_ORG = 'DokuWiki'
 access_token = None
-UPLOAD_RETRY_ON_ERROR = True
+UPLOAD_RETRY_ON_ERROR = False
 
 
 def get_url(url):
@@ -153,6 +153,7 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
 
 
 def refresh_git_repo(response, source_repo_name, upload_results_file):
+    print("Found uncommitted changes")
     changed = False
     untracked = False
     lines = response.stdout.decode("utf-8", "ignore").split('\n')

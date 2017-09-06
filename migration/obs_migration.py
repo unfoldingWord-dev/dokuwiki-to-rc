@@ -16,7 +16,7 @@ class OBS_Migration(Migration):
         return self.do_conversion(self.type, 'content')
 
     def init_converter(self, lang_code, git_repo, out_dir, quiet):
-        return OBSConverter(lang_code, git_repo, out_dir, quiet, flat_format=True)
+        return OBSConverter(lang_code, git_repo, out_dir, quiet, flat_format=True, ignore_lang_code_error=True)
 
     def save_results(self):
         super(OBS_Migration, self).save_results()

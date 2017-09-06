@@ -47,7 +47,10 @@ def get_results_summary():
     results_file = os.path.join(out_dir, "results.json")
     repo_results = file_utils.load_json_object(results_file)
 
-    if RELOAD:
+    if RELOAD or not repo_results:
+        if not repo_results:
+            repo_results = {}
+
         lang_folders = [f for f in os.listdir(out_dir) if os.path.isdir(os.path.join(out_dir, f))]
         for folder in lang_folders:
 
@@ -65,8 +68,26 @@ def get_results_summary():
                 name = results['name'] + '_tw'
                 repo_results[name] = results
 
+            # get tq results
+            path = os.path.join(out_dir, folder, "tq_results.json")
+            results = file_utils.load_json_object(path)
+            if results:
+                name = results['name'] + '_tq'
+                repo_results[name] = results
+
+            # get tn results
+            path = os.path.join(out_dir, folder, "tn_results.json")
+            results = file_utils.load_json_object(path)
+            if results:
+                name = results['name'] + '_tn'
+                repo_results[name] = results
+
         file_utils.write_file(results_file, repo_results)
 
+    show_migration_results(repo_results)
+
+
+def show_migration_results(repo_results):
     if repo_results:
         print("\nFound {0} items".format(len(repo_results)))
 
@@ -106,7 +127,6 @@ def get_results_summary():
         print_results_list('TN Successes', tn_converted_success, 'tn_error')
         print_results_list('TN failed OBS', tn_converted_error_obs_failed, 'tn_error')
         print_results_list('TN Other Errors', tn_converted_error_misc, 'tn_error', detail=True)
-
     print_results_list('Unsupported language errors', unsupported_language_error, 'error')
     print_results_dict('Unrecognized items', repo_results, 'error', detail=True)
 
