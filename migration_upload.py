@@ -69,25 +69,20 @@ def upload_repos():
     lang_folders = [f for f in os.listdir(MIGRATION_FOLDER) if os.path.isdir(os.path.join(MIGRATION_FOLDER, f))]
     lang_folders.sort()
     for lang_folder in lang_folders:
-        upload_language_migrations(DESTINATION_ORG, lang_folder)
 
-    # url = HOST_NAME + '/api/v1/repos/Door43/repos'
-    # # url = HOST_NAME + '/api/v1/user/repos'
-    # # url = HOST_NAME + '/api/v1/repos/search?q=php&uid=0&limit=75'
-    # # response = get_url(url)
-    #
-    # found1 = isRepoPresent(DESTINATION_ORG, 'en-obs')
-    # found2 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
-    # found3 = createRepoInOrganization(DESTINATION_ORG, 'en-obs2')
-    # found4 = isRepoPresent(DESTINATION_ORG, 'en-obs2')
+        # if lang_folder != 'zh':
+        #     continue
+
+        upload_language_migrations(DESTINATION_ORG, lang_folder)
 
 
 def upload_language_migrations(org, lang, ignore_if_exists=False):
     print("migrating " + lang)
     success = upload_migration(org, lang, 'obs', ignore_if_exists=ignore_if_exists)
-    success = success or upload_migration(org, lang, 'tq', ignore_if_exists=ignore_if_exists)
-    # success = success or upload_migration(org, lang, 'tw', ignore_if_exists=ignore_if_exists)
-    success = success or upload_migration(org, lang, 'tn', ignore_if_exists=ignore_if_exists)
+    success2 = upload_migration(org, lang, 'tq', ignore_if_exists=ignore_if_exists)
+    # success3 = upload_migration(org, lang, 'tw', ignore_if_exists=ignore_if_exists)
+    success4 = upload_migration(org, lang, 'tn', ignore_if_exists=ignore_if_exists)
+    success = success or success2 or success4
     if not success:
         print("language migration failed for " + lang)
         return False
