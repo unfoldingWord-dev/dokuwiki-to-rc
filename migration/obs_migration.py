@@ -26,6 +26,12 @@ class OBS_Migration(Migration):
         self.remove_results_file("tq_results.json")
         self.remove_results_file("tn_results.json")
 
+    def is_conversion_needed(self, sub_path):
+        convert = super(OBS_Migration, self).is_conversion_needed(sub_path)
+        if convert and self.last_error and (self.last_error.find('Title not converted error') >= 0):
+            convert = False
+        return convert
+
     def not_translated(self, converter):
         if converter:
             return converter.not_translated()

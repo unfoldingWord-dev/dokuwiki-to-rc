@@ -33,6 +33,7 @@ RETRY_FAILURES = False
 MIGRATION_FOLDER = '../ConvertedDokuWiki'
 DESTINATION_ORG = 'DokuWiki'
 access_token = None
+UPLOAD_RETRY_ON_ERROR = True
 
 
 def get_url(url):
@@ -65,7 +66,10 @@ def post_url(url, data):
 
 def upload_repos():
 
-    upload_language_migrations(DESTINATION_ORG, 'en')
+    lang_folders = [f for f in os.listdir(MIGRATION_FOLDER) if os.path.isdir(os.path.join(MIGRATION_FOLDER, f))]
+    lang_folders.sort()
+    for lang_folder in lang_folders:
+        upload_language_migrations(DESTINATION_ORG, lang_folder)
 
     # url = HOST_NAME + '/api/v1/repos/Door43/repos'
     # # url = HOST_NAME + '/api/v1/user/repos'
@@ -99,8 +103,9 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
     if type != 'obs':
         destination_repo_name += '-' + type
 
-    results_file = os.path.join(source_repo_name, '..', type + '_upload.json')
-    upload = is_upload_needed(results_file, source_repo_name)
+    upload_results_file = os.path.join(source_repo_name, '..', type + '_upload.json')
+    convert_results_file = os.path.join(source_repo_name, '..', type + '_results.json')
+    upload = is_upload_needed(upload_results_file, source_repo_name, convert_results_file, org, destination_repo_name, retry_on_error=UPLOAD_RETRY_ON_ERROR)
     if not upload:
         return False
 
@@ -109,59 +114,82 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
         created = createRepoInOrganization(org, destination_repo_name)
         print("Creating Repo {0}/{1}".format(org, destination_repo_name))
         if not created:
-            error_log(results_file, "Repo {0}/{1} creation failure".format(org, destination_repo_name))
+            error_log(upload_results_file, "Repo {0}/{1} creation failure".format(org, destination_repo_name))
             return False
     elif not ignore_if_exists:
-        error_log(results_file, "Repo {0}/{1} already exists".format(org, destination_repo_name))
+        error_log(upload_results_file, "Repo {0}/{1} already exists".format(org, destination_repo_name))
         return False
 
     success = run_git(['init', '.'], source_repo_name)
     if not success:
-        error_log(results_file, "git init {0} failed".format(source_repo_name))
+        error_log(upload_results_file, "git init {0} failed".format(source_repo_name))
         return False
 
     success = run_git(['add', '.'], source_repo_name)
     if not success:
-        error_log(results_file, "git add {0} failed".format(source_repo_name))
+        error_log(upload_results_file, "git add {0} failed".format(source_repo_name))
         return False
 
     success = run_git(['commit', '-m "first commit"'], source_repo_name)
     if not success:
-        error_log(results_file, "git commit {0} failed".format(source_repo_name))
+        error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
         return False
 
     remote_repo = 'https://git.door43.org/DokuWiki/{0}.git'.format(destination_repo_name)
     success = run_git(['remote', 'add', 'origin', remote_repo], source_repo_name)
     if not success:
-        error_log(results_file, "git commit {0} failed".format(source_repo_name))
+        error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
         return False
 
     success = run_git(['push', 'origin', 'master'], source_repo_name)
     if not success:
-        error_log(results_file, "git commit {0} failed".format(source_repo_name))
+        error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
         return False
 
-    save_success(results_file)
+    save_success(upload_results_file)
     return True
 
 
-def is_upload_needed(results_file, source_repo_name, retry_on_error=False):
+def is_upload_needed(upload_results_file, source_repo_name, convert_results_file, org, destination_repo_name, retry_on_error=False):
     try:
         content_path = os.path.join(source_repo_name, 'content')
         if not os.path.exists(content_path):
             print("skipping since no content")
             return False
 
-        previous_results = file_utils.load_json_object(results_file)
-        success = previous_results['success']
-        if success:
-            print("already uploaded")
+        convert_results = file_utils.load_json_object(convert_results_file)
+        basename = os.path.basename(convert_results_file)
+        prefix = basename.split('_')
+        convert_success_key = prefix[0] + '_' + 'success'
+        success = convert_results and (convert_success_key in convert_results) and convert_results[convert_success_key]
+        if not success:
+            print("skipping failed convert")
             return False
 
+        previous_upload_results = file_utils.load_json_object(upload_results_file)
+        if not previous_upload_results:
+            return True
+
+        success = previous_upload_results and previous_upload_results['success']
+        if success:
+            repo_exists = isRepoPresent(org, destination_repo_name)
+            if repo_exists:
+                print("already uploaded")
+                return False
+            else:
+                print("upload missing, try again")
+                return True
+
+        # not success
+        error = 'unknown' if 'error' not in previous_upload_results else previous_upload_results['error']
         if not retry_on_error:
-            error = 'unknown' if 'error' not in previous_results else previous_results['error']
             print("Skipping due to previous upload error: " + error)
             return False
+        else:
+            repo_exists = isRepoPresent(org, destination_repo_name)
+            if not repo_exists:
+                print("Retrying Upload, previous upload error: " + error)
+                return True
 
     except:
         pass
@@ -229,7 +257,7 @@ def createRepoInOrganization(org, repo):
     return False
 
 
-def createRepoForCurrentUser(repo):
+def createRepoForCurrentUser(user, repo):
     """
     :param repo:
     :return:

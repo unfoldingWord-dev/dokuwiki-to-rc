@@ -75,8 +75,8 @@ def migrate_repo(repo, results_file, door43_repos, out_dir):
 
     lang_code = name[4:]
 
-    if lang_code != 'en':
-        return
+    # if lang_code != 'en':
+    #     return
 
     if lang_code not in valid_repos:
         msg = "Skipping over unsupported language: {0}\n".format(name)
@@ -90,6 +90,8 @@ def migrate_repo(repo, results_file, door43_repos, out_dir):
         msg = "Error getting data for: {0}\n".format(name)
         log_error(results_file, door43_repos, name, msg)
         return
+
+    print("\nMigrating " + lang_code)
 
     # for migration_class in [OBS_Migration, TW_Migration, TQ_Migration, TN_Migration]:
     for migration_class in [OBS_Migration, TQ_Migration, TN_Migration]:
