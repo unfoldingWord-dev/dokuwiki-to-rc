@@ -70,7 +70,7 @@ def upload_repos():
     lang_folders.sort()
     for lang_folder in lang_folders:
 
-        # if lang_folder != 'zh':
+        # if lang_folder != 'bn':
         #     continue
 
         upload_language_migrations(DESTINATION_ORG, lang_folder)
@@ -111,9 +111,16 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
         if not created:
             error_log(upload_results_file, "Repo {0}/{1} creation failure".format(org, destination_repo_name))
             return False
-    elif not ignore_if_exists:
-        error_log(upload_results_file, "Repo {0}/{1} already exists".format(org, destination_repo_name))
-        return False
+    else:  # repo already exists
+        git_exists = os.path.exists(os.path.join(source_repo_name, '.git'))
+        if git_exists:
+            response = run_git_full_response(['status', '--porcelain'], source_repo_name)
+            if response.stdout:
+                return refresh_git_repo(response, source_repo_name, upload_results_file)
+
+        if not ignore_if_exists:
+            error_log(upload_results_file, "Repo {0}/{1} already exists".format(org, destination_repo_name))
+            return False
 
     success = run_git(['init', '.'], source_repo_name)
     if not success:
@@ -142,6 +149,41 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
         return False
 
     save_success(upload_results_file)
+    return True
+
+
+def refresh_git_repo(response, source_repo_name, upload_results_file):
+    changed = False
+    untracked = False
+    lines = response.stdout.decode("utf-8", "ignore").split('\n')
+    for line in lines:
+        prefix = line.strip().split(' ')
+        if prefix[0] == 'D':
+            changed = True
+        elif prefix[0] == '??':
+            untracked = True
+        elif prefix[0] == 'M':
+            changed = True
+        elif prefix[0] == 'A':
+            changed = True
+
+    if untracked:
+        success = run_git(['add', '.'], source_repo_name)
+        if not success:
+            error_log(upload_results_file, "git add {0} failed".format(source_repo_name))
+            return False
+
+    if untracked or changed:
+        success = run_git(['commit', '-m "clean up"'], source_repo_name)
+        if not success:
+            error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
+            return False
+
+        success = run_git(['push', 'origin', 'master'], source_repo_name)
+        if not success:
+            error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
+            return False
+
     return True
 
 
@@ -213,14 +255,19 @@ def save_results(results_file, data):
 
 
 def run_git(params, working_folder):
+    results = run_git_full_response(params, working_folder)
+    success = results.returncode == 0
+    return success
+
+
+def run_git_full_response(params, working_folder):
     print("Doing git {0}".format(params[0]))
     initial_dir = os.path.abspath(os.curdir)
     os.chdir(working_folder)
     command = ['git'] + params
     results = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    success = results.returncode == 0
     os.chdir(initial_dir)  # restore curdir
-    return success
+    return results
 
 
 def isRepoPresent(user, repo):
