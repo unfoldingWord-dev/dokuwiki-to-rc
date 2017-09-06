@@ -20,19 +20,18 @@
 ####################################################################################################
 
 from __future__ import unicode_literals
-import json
+
 import os
 import sys
-import requests
-import subprocess
 from general_tools import file_utils
 from general_tools.file_utils import write_file
+from converters.common import run_git, is_git_changed, isRepoPresent, createRepoInOrganization
 
 HOST_NAME = 'https://aws.door43.org'
 RETRY_FAILURES = False
 MIGRATION_FOLDER = '../ConvertedDokuWiki'
 DESTINATION_ORG = 'DokuWiki'
-github_access_token = None
+gogs_access_token = None
 UPLOAD_RETRY_ON_ERROR = True
 
 
@@ -42,7 +41,7 @@ def upload_repos():
     lang_folders.sort()
     for lang_folder in lang_folders:
 
-        # if lang_folder != 'tl':
+        # if lang_folder != 'af':
         #     continue
 
         upload_language_migrations(DESTINATION_ORG, lang_folder)
@@ -76,9 +75,9 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
     if not upload:
         return False
 
-    repo_exists = isRepoPresent(org, destination_repo_name)
+    repo_exists = isRepoPresent(HOST_NAME, org, destination_repo_name, gogs_access_token)
     if not repo_exists:
-        created = createRepoInOrganization(org, destination_repo_name)
+        created = createRepoInOrganization(HOST_NAME, org, destination_repo_name, gogs_access_token)
         print("Creating Repo {0}/{1}".format(org, destination_repo_name))
         if not created:
             error_log(upload_results_file, "Repo {0}/{1} creation failure".format(org, destination_repo_name))
@@ -86,9 +85,9 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
     else:  # repo already exists
         git_exists = os.path.exists(os.path.join(source_repo_name, '.git'))
         if git_exists:
-            response = run_git_full_response(['status', '--porcelain'], source_repo_name)
-            if response.stdout:
-                return refresh_git_repo(response, source_repo_name, upload_results_file)
+            changed, untracked = is_git_changed(source_repo_name)
+            if changed:
+                return refresh_git_repo(changed, untracked, source_repo_name, upload_results_file)
 
         if not ignore_if_exists:
             error_log(upload_results_file, "Repo {0}/{1} already exists".format(org, destination_repo_name))
@@ -124,24 +123,11 @@ def upload_migration(org, lang, type, ignore_if_exists=False):
     return True
 
 
-def refresh_git_repo(response, source_repo_name, upload_results_file):
+def refresh_git_repo(changed, untracked, source_repo_name, upload_results_file):
     print("Found uncommitted changes")
-    changed = False
-    untracked = False
-    lines = response.stdout.decode("utf-8", "ignore").split('\n')
-    for line in lines:
-        prefix = line.strip().split(' ')
-        if prefix[0] == 'D':
-            changed = True
-        elif prefix[0] == '??':
-            untracked = True
-        elif prefix[0] == 'M':
-            changed = True
-        elif prefix[0] == 'A':
-            changed = True
 
     if untracked:
-        success = run_git(['add', '.'], source_repo_name)
+        success = run_git(['add', '-A', '.'], source_repo_name)
         if not success:
             error_log(upload_results_file, "git add {0} failed".format(source_repo_name))
             return False
@@ -160,7 +146,8 @@ def refresh_git_repo(response, source_repo_name, upload_results_file):
     return True
 
 
-def is_upload_needed(upload_results_file, source_repo_name, convert_results_file, org, destination_repo_name, retry_on_error=False):
+def is_upload_needed(upload_results_file, source_repo_name, convert_results_file, org, destination_repo_name,
+                     retry_on_error=False):
     try:
         content_path = os.path.join(source_repo_name, 'content')
         if not os.path.exists(content_path):
@@ -182,9 +169,10 @@ def is_upload_needed(upload_results_file, source_repo_name, convert_results_file
 
         success = previous_upload_results and previous_upload_results['success']
         if success:
-            repo_exists = isRepoPresent(org, destination_repo_name)
+            repo_exists = isRepoPresent(HOST_NAME, org, destination_repo_name, gogs_access_token)
             if repo_exists:
                 print("already uploaded")
+                make_sure_git_updated(source_repo_name, upload_results_file)
                 return False
             else:
                 print("upload missing, try again")
@@ -196,15 +184,25 @@ def is_upload_needed(upload_results_file, source_repo_name, convert_results_file
             print("Skipping due to previous upload error: " + error)
             return False
         else:
-            repo_exists = isRepoPresent(org, destination_repo_name)
+            repo_exists = isRepoPresent(HOST_NAME, org, destination_repo_name, gogs_access_token)
             if not repo_exists:
                 print("Retrying Upload, previous upload error: " + error)
                 return True
+
+            make_sure_git_updated(source_repo_name, upload_results_file)
 
     except:
         pass
 
     return True
+
+
+def make_sure_git_updated(source_repo_name, upload_results_file):
+    git_exists = os.path.exists(os.path.join(source_repo_name, '.git'))
+    if git_exists:
+        changed, untracked = is_git_changed(source_repo_name)
+        if changed:
+            refresh_git_repo(changed, untracked, source_repo_name, upload_results_file)
 
 
 def error_log(results_file, msg):
@@ -227,103 +225,9 @@ def save_results(results_file, data):
     write_file(results_file, data)
 
 
-def run_git(params, working_folder):
-    results = run_git_full_response(params, working_folder)
-    success = results.returncode == 0
-    return success
-
-
-def run_git_full_response(params, working_folder):
-    print("Doing git {0}".format(params[0]))
-    initial_dir = os.path.abspath(os.curdir)
-    os.chdir(working_folder)
-    command = ['git'] + params
-    results = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    os.chdir(initial_dir)  # restore curdir
-    return results
-
-
-def isRepoPresent(user, repo):
-    url = HOST_NAME + '/api/v1/repos/{0}/{1}'.format(user, repo)
-    response = get_url(url)
-    text = response.text
-    if not text:
-        return False
-    results = json.loads(text)
-    return results and (len(results) > 0)
-
-
-def createRepoInOrganization(org, repo):
-    """
-    Note that user must be the same as the user for access_token
-    :param user:
-    :param repo:
-    :return:
-    """
-    url = '{0}/api/v1/org/{1}/repos'.format(HOST_NAME, org)
-    data = 'name={0}'.format(repo)
-    response = post_url(url, data)
-    text = response.text
-    if text:
-        results = json.loads(text)
-        if results and 'full_name' in results:
-            full_name = '{0}/{1}'.format(org, repo)
-            return results['full_name'] == full_name
-    return False
-
-
-def createRepoForCurrentUser(user, repo):
-    """
-    :param repo:
-    :return:
-    """
-    url = HOST_NAME + '/api/v1/user/repos'
-    data = 'name={0}'.format(repo)
-    response = post_url(url, data)
-    text = response.text
-    if text:
-        results = json.loads(text)
-        if results and 'full_name' in results:
-            full_name = '{0}/{1}'.format(user, repo)
-            return results['full_name'] == full_name
-    return False
-
-
-def upload_obs(lang):
-    return True
-
-
-def get_url(url):
-    """
-    :param str|unicode url: URL to open
-    :return response
-    """
-    headers = {
-        'Authorization': 'token ' + github_access_token
-    }
-
-    response = requests.get(url, headers=headers)
-    return response
-
-
-def post_url(url, data):
-    """
-    :param str|unicode url: URL to open
-    :param bool catch_exception: If <True> catches all exceptions and returns <False>
-    :return tuple of file contents and header Link
-    """
-    headers = {
-        'Authorization': 'token ' + github_access_token,
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-
-    response = requests.post(url, data, headers=headers)
-    return response
-
-
 if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
-    github_access_token = file_utils.read_file("gogs_api_token")
+    gogs_access_token = file_utils.read_file("gogs_api_token")
     upload_repos()

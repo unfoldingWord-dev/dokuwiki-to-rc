@@ -20,10 +20,15 @@ from __future__ import unicode_literals
 import json
 import os
 import sys
+import requests
 from general_tools import file_utils
+from converters.common import isRepoPresent, is_git_changed
 
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
+HOST_NAME = 'https://aws.door43.org'
+DESTINATION_ORG = 'DokuWiki'
 RELOAD = False  # set to True to refresh master list from each conversion summary in DESTINATION_FOLDER
+gogs_access_token = None
 
 obs_converted_success = []
 obs_converted_error_misc = []
@@ -85,6 +90,93 @@ def get_results_summary():
         file_utils.write_file(results_file, repo_results)
 
     show_migration_results(repo_results)
+    show_upload_results(out_dir)
+
+upload_successes = []
+upload_failures = []
+
+def show_upload_results(out_dir):
+    lang_folders = [f for f in os.listdir(out_dir) if os.path.isdir(os.path.join(out_dir, f))]
+    for lang in lang_folders:
+        print("lang: " + lang)
+        validate_repo(out_dir, lang, 'obs')
+        validate_repo(out_dir, lang, 'tq')
+        validate_repo(out_dir, lang, 'tn')
+
+    print_results_list('Upload Successes', upload_successes, 'error')
+    print_results_list('Upload Failures', upload_failures, 'error', detail=True)
+
+def validate_repo(out_dir, lang, type):
+    lang_folder = os.path.join(out_dir, lang)
+    source_repo_path = os.path.join(lang_folder, type)
+
+    destination_repo_name = lang + '_obs'
+    if type != 'obs':
+        destination_repo_name += '-' + type
+
+    convert_results_file = os.path.join(lang_folder, type + "_results.json")
+    convert_success_key = type + "_success"
+    convert_results = file_utils.load_json_object(convert_results_file)
+    convert_success = convert_results and (convert_success_key in convert_results) \
+                      and convert_results[convert_success_key]
+
+    if not convert_success:
+        return False  # only care if convert succeeded
+
+    changed = False
+    untracked = False
+    repo_exists = isRepoPresent(HOST_NAME, DESTINATION_ORG, destination_repo_name, gogs_access_token)
+    if repo_exists:
+        git_init = os.path.exists(os.path.join(source_repo_path, ".git"))
+        if git_init:
+            changed, untracked = is_git_changed(source_repo_path)
+
+    if changed:
+        return save_error(destination_repo_name, "Has uncommited git changes")
+
+    upload_results_file = os.path.join(lang_folder, type + "_upload.json")
+    upload_results = file_utils.load_json_object(upload_results_file)
+    upload_success = upload_results and ('success' in upload_results) and upload_results['success']
+
+    error = ''
+    if not upload_success and upload_results and ('error' in upload_results):
+        error = upload_results['error']
+
+        # remove invalid error
+        if error and (error.find('already exists') >= 0):
+            upload_results['success'] = True
+            upload_results['error'] = None
+            file_utils.write_file(upload_results_file, upload_results)
+            upload_success = True
+            error = ''
+
+    if upload_success:
+        if repo_exists:
+            return upload_successes.append( { 'name': destination_repo_name, 'success': True } )
+        else:
+            return save_error(destination_repo_name, "Repo not uploaded")
+
+    return save_error(destination_repo_name, error)
+
+
+def save_error(name, msg):
+    if not msg:
+        msg = 'UNKNOWN'
+    upload_failures.append( { 'name': name, 'success': False, 'error': msg } )
+    return False
+
+
+def get_url(url):
+    """
+    :param str|unicode url: URL to open
+    :return response
+    """
+    headers = {
+        'Authorization': 'token ' + gogs_access_token
+    }
+
+    response = requests.get(url, headers=headers)
+    return response
 
 
 def show_migration_results(repo_results):
@@ -227,6 +319,7 @@ def print_results_dict(msg, results_list, error_key, detail=False):
                 error = json.dumps(item)
             print("\n   {0}: {1}".format(item['name'], error))
 
+
 def print_results_list(msg, results_list, error_key, detail=False):
     names = [x['name'] for x in results_list]
     print("\n{0} {1}: {2}".format(len(names), msg, ','.join(names)))
@@ -250,4 +343,5 @@ if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
+    gogs_access_token = file_utils.read_file("gogs_api_token")
     get_results_summary()

@@ -1,6 +1,9 @@
 from __future__ import print_function, unicode_literals
+import json
 import re
+import os
 import requests
+import subprocess
 from collections import OrderedDict
 from contextlib import closing
 from datetime import datetime
@@ -176,3 +179,117 @@ class ResourceManifestEncoder(JSONEncoder):
         :return:
         """
         return o.to_serializable()
+
+
+def run_git(params, working_folder):
+    results = run_git_full_response(params, working_folder)
+    success = (results.returncode == 0)
+    return success
+
+
+def run_git_full_response(params, working_folder):
+    print("Doing git {0}".format(params[0]))
+    initial_dir = os.path.abspath(os.curdir)
+    os.chdir(working_folder)
+    command = ['git'] + params
+    results = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    os.chdir(initial_dir)  # restore curdir
+    if (results.returncode != 0):
+        print("Git ERROR: " + results.stdout.decode("utf-8", "ignore") + results.stderr.decode("utf-8", "ignore"))
+    return results
+
+
+def is_git_changed(source_repo_name):
+    response = run_git_full_response(['status', '--porcelain'], source_repo_name)
+    changed = False
+    untracked = False
+    if response.stdout:
+        lines = response.stdout.decode("utf-8", "ignore").split('\n')
+        for line in lines:
+            prefix = line.strip().split(' ')
+            if prefix[0] == 'D':
+                untracked = True
+                changed = True
+            elif prefix[0] == '??':
+                untracked = True
+                changed = True
+            elif prefix[0] == 'M':
+                changed = True
+            elif prefix[0] == 'A':
+                changed = True
+
+            if changed and line:
+                print("changed: " + line)
+
+    return changed, untracked
+
+def get_git_url(url, access_token):
+    """
+    :param str|unicode url: URL to open
+    :return response
+    """
+    headers = {
+        'Authorization': 'token ' + access_token
+    }
+
+    response = requests.get(url, headers=headers)
+    return response
+
+
+def post_git_url(url, data, access_token):
+    """
+    :param str|unicode url: URL to open
+    :return tuple of file contents and header Link
+    """
+    headers = {
+        'Authorization': 'token ' + access_token,
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    response = requests.post(url, data, headers=headers)
+    return response
+
+def isRepoPresent(host_name, user, repo, access_token):
+    url = host_name + '/api/v1/repos/{0}/{1}'.format(user, repo)
+    response = get_git_url(url, access_token)
+    text = response.text
+    if not text:
+        return False
+    results = json.loads(text)
+    return results and (len(results) > 0)
+
+
+def createRepoInOrganization(host_name, org, repo, access_token):
+    """
+    Note that user must be the same as the user for access_token
+    :param user:
+    :param repo:
+    :return:
+    """
+    url = '{0}/api/v1/org/{1}/repos'.format(host_name, org)
+    data = 'name={0}'.format(repo)
+    response = post_git_url(url, data, access_token)
+    text = response.text
+    if text:
+        results = json.loads(text)
+        if results and 'full_name' in results:
+            full_name = '{0}/{1}'.format(org, repo)
+            return results['full_name'] == full_name
+    return False
+
+
+def createRepoForCurrentUser(host_name, user, repo, access_token):
+    """
+    :param repo:
+    :return:
+    """
+    url = host_name + '/api/v1/user/repos'
+    data = 'name={0}'.format(repo)
+    response = post_git_url(url, data, access_token)
+    text = response.text
+    if text:
+        results = json.loads(text)
+        if results and 'full_name' in results:
+            full_name = '{0}/{1}'.format(user, repo)
+            return results['full_name'] == full_name
+    return False
