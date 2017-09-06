@@ -33,35 +33,7 @@ RETRY_FAILURES = False
 MIGRATION_FOLDER = '../ConvertedDokuWiki'
 DESTINATION_ORG = 'DokuWiki'
 github_access_token = None
-UPLOAD_RETRY_ON_ERROR = False
-
-
-def get_url(url):
-    """
-    :param str|unicode url: URL to open
-    :return response
-    """
-    headers = {
-        'Authorization': 'token ' + github_access_token
-    }
-
-    response = requests.get(url, headers=headers)
-    return response
-
-
-def post_url(url, data):
-    """
-    :param str|unicode url: URL to open
-    :param bool catch_exception: If <True> catches all exceptions and returns <False>
-    :return tuple of file contents and header Link
-    """
-    headers = {
-        'Authorization': 'token ' + github_access_token,
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-
-    response = requests.post(url, data, headers=headers)
-    return response
+UPLOAD_RETRY_ON_ERROR = True
 
 
 def upload_repos():
@@ -70,7 +42,7 @@ def upload_repos():
     lang_folders.sort()
     for lang_folder in lang_folders:
 
-        # if lang_folder != 'bn':
+        # if lang_folder != 'tl':
         #     continue
 
         upload_language_migrations(DESTINATION_ORG, lang_folder)
@@ -316,8 +288,38 @@ def createRepoForCurrentUser(user, repo):
             return results['full_name'] == full_name
     return False
 
+
 def upload_obs(lang):
     return True
+
+
+def get_url(url):
+    """
+    :param str|unicode url: URL to open
+    :return response
+    """
+    headers = {
+        'Authorization': 'token ' + github_access_token
+    }
+
+    response = requests.get(url, headers=headers)
+    return response
+
+
+def post_url(url, data):
+    """
+    :param str|unicode url: URL to open
+    :param bool catch_exception: If <True> catches all exceptions and returns <False>
+    :return tuple of file contents and header Link
+    """
+    headers = {
+        'Authorization': 'token ' + github_access_token,
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    response = requests.post(url, data, headers=headers)
+    return response
+
 
 if __name__ == '__main__':
     args = sys.argv
