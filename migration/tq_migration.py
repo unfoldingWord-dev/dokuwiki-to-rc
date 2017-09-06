@@ -26,4 +26,4 @@ class TQ_Migration(Migration):
         return False
 
     def init_converter(self, lang_code, git_repo, out_dir, quiet):
-        return TQConverter(lang_code, git_repo, None, out_dir, quiet)
+        return TQConverter(lang_code, git_repo, None, out_dir, quiet, ignore_lang_code_error=True)

@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 from datetime import datetime
+from general_tools import file_utils
 from general_tools.file_utils import write_file
 from general_tools.url_utils import get_languages, join_url_parts, get_url
 from resource_container import factory
@@ -24,7 +25,7 @@ class TNConverter(object):
     link_tag_re = re.compile(r'\[\[.*?\]\]', re.UNICODE)
     langs = None
 
-    def __init__(self, lang_code, git_repo, out_dir, quiet, overwrite):
+    def __init__(self, lang_code, git_repo, out_dir, quiet, overwrite, ignore_lang_code_error=False):
         """
 
         :param unicode lang_code:
@@ -56,7 +57,14 @@ class TNConverter(object):
         self.lang_data = next((l for l in langs if l['lc'] == lang_code), '')
 
         if not self.lang_data:
-            raise Exception('Information for language "{0}" was not found.'.format(lang_code))
+            if ignore_lang_code_error:
+                self.lang_data = {  # default language data
+                    'lc': lang_code,
+                    'direction': '',
+                    'title': lang_code
+                }
+            else:
+                raise Exception('Information for language "{0}" was not found.'.format(lang_code))
 
         self.trying = 'Init'
         self.english = lang_code[:2] == 'en'
@@ -97,9 +105,7 @@ class TNConverter(object):
             if url:
                 self.download_frame_file(url, target_dir)
 
-        # get the status
-        uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
-        status = self.get_json_dict(join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt'))
+        status = self.get_uw_status(lang_code)
 
         self.trying = 'creating manifest'
         title = 'OBS translationNotes'
@@ -227,12 +233,18 @@ class TNConverter(object):
             text = self.link_tag_re.sub('', text)
         return text
 
-    def get_json_dict(self, download_url):
-        return_val = {}
+    def get_json_dict_from_url(self, download_url):
         status_text = get_url(download_url)
+        return self.parse_data_file(status_text)
+
+    def get_json_dict_from_file(self, file_path):
+        status_text = file_utils.read_file(file_path)
+        return self.parse_data_file(status_text)
+
+    def parse_data_file(self, status_text):
+        return_val = {}
         status_text = status_text.replace('\r', '')
         lines = filter(bool, status_text.split('\n'))
-
         for line in lines:
 
             if line.startswith('#') or line.startswith('\n') or line.startswith('{{') or ':' not in line:
@@ -241,5 +253,15 @@ class TNConverter(object):
             newline = self.clean_text(line)
             k, v = newline.split(':', 1)
             return_val[k.strip().lower().replace(' ', '_')] = v.strip()
-
         return return_val
+
+    def get_uw_status(self, lang_code):
+        uwadmin_dir = 'https://raw.githubusercontent.com/Door43/d43-en/master/uwadmin'
+        status_path = join_url_parts(uwadmin_dir, lang_code, 'obs/status.txt')
+        self.trying = 'getting UW status (' + status_path + ')'
+        try:
+            status = self.get_json_dict_from_url(status_path)
+        except:
+            print("UW Status not found, using defaults")
+            status = self.get_json_dict_from_file('default_uw_status.txt')
+        return status
