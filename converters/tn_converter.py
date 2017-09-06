@@ -1,4 +1,6 @@
 from __future__ import print_function, unicode_literals
+import codecs
+import inspect
 import json
 import os
 import re
@@ -66,6 +68,12 @@ class TNConverter(object):
             else:
                 raise Exception('Information for language "{0}" was not found.'.format(lang_code))
 
+        # read the github access token
+        root_dir = os.path.dirname(os.path.dirname(inspect.stack()[0][1]))
+        with codecs.open(os.path.join(root_dir, 'github_api_token'), 'r', 'utf-8-sig') as in_file:
+            # read the text from the file
+            self.access_token = in_file.read()
+
         self.trying = 'Init'
         self.english = lang_code[:2] == 'en'
         self.translated_titles = 0
@@ -96,13 +104,14 @@ class TNConverter(object):
 
         self.trying = 'Getting OBS frame URLs'
         quiet_print(self.quiet, 'Getting OBS frame URLs...', end=' ')
-        frames_list = [o['download_url'] for o in json.loads(get_url(frames_api_url))]
+        frames_list = [o['download_url'] for o in json.loads(self.get_api_url(frames_api_url))]
         quiet_print(self.quiet, 'finished.')
 
-        self.trying = 'Downloads OBS frame files'
+        self.trying = 'Download OBS frame files'
         target_dir = os.path.join(self.out_dir, 'content')
         for url in frames_list:
             if url:
+                self.trying = 'Download OBS frame file: ' + url
                 self.download_frame_file(url, target_dir)
 
         status = self.get_uw_status(lang_code)
@@ -168,11 +177,16 @@ class TNConverter(object):
             quiet_print(self.quiet, 'Skipping non-dokuwiki file {0}.'.format(dw_filename))
             return
 
-        chapter_dir = dw_filename.split('-')[0]
-        md_filename = dw_filename.split('-')[1].replace('.txt', '.md')
-        save_as = os.path.join(out_dir, chapter_dir, md_filename)
-        if not self.overwrite and os.path.isfile(save_as):
-            quiet_print(self.quiet, 'Skipping {0}.'.format(dw_filename))
+        parts = dw_filename.split('-')
+        if len(parts) == 2:
+            chapter_dir = parts[0]
+            md_filename = parts[1].replace('.txt', '.md')
+            save_as = os.path.join(out_dir, chapter_dir, md_filename)
+            if not self.overwrite and os.path.isfile(save_as):
+                quiet_print(self.quiet, 'Skipping {0}.'.format(dw_filename))
+                return
+        else:
+            quiet_print(self.quiet, 'Skipping invalid chunk {0}.'.format(dw_filename))
             return
 
         # for test cases
@@ -234,7 +248,7 @@ class TNConverter(object):
         return text
 
     def get_json_dict_from_url(self, download_url):
-        status_text = get_url(download_url)
+        status_text = self.get_api_url(download_url)
         return self.parse_data_file(status_text)
 
     def get_json_dict_from_file(self, file_path):
@@ -265,3 +279,12 @@ class TNConverter(object):
             print("UW Status not found, using defaults")
             status = self.get_json_dict_from_file('default_uw_status.txt')
         return status
+
+    def get_api_url(self, url):
+        if '?' in url:
+            url += '&access_token={0}'.format(self.access_token)
+        else:
+            url += '?access_token={0}'.format(self.access_token)
+
+        results = get_url(url)
+        return results

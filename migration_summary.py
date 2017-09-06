@@ -23,7 +23,7 @@ import sys
 from general_tools import file_utils
 
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
-RELOAD = False  # set to True to refresh master list from each conversion summary
+RELOAD = False  # set to True to refresh master list from each conversion summary in DESTINATION_FOLDER
 
 obs_converted_success = []
 obs_converted_error_misc = []

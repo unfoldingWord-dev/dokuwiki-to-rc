@@ -26,4 +26,4 @@ class TN_Migration(Migration):
         return False
 
     def init_converter(self, lang_code, git_repo, out_dir, quiet):
-        return TNConverter(lang_code, git_repo, out_dir, quiet, overwrite=True, ignore_lang_code_error=True)
+        return TNConverter(lang_code, git_repo, out_dir, quiet, overwrite=False, ignore_lang_code_error=True)

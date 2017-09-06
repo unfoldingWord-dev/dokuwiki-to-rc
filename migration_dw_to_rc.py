@@ -13,6 +13,7 @@
 
 ####################################################################################################
 # Convert all OBS repos on github.com/Door43 from DokuWiki to Resource containers in ../ConvertedDokuWiki
+# This script keeps track of progress, so it can be restarted if it exits due to communication errors.
 #
 # setup: get token from github and save in file 'github_api_token'
 #  see https://github.com/blog/1509-personal-api-tokens for how to create a token and set the scope to
@@ -34,9 +35,10 @@ from migration.tw_migration import TW_Migration
 REPOS_SOURCE = 'https://api.github.com/users/Door43/repos'
 RETRY_FAILURES = True
 DESTINATION_FOLDER = '../ConvertedDokuWiki'
-access_token = None
+github_access_token = None
 valid_repos = None
-start_page = 0  # query page to start at
+start_page = 0  # repos page to start at
+
 
 def convert_door43_repos(source):
     source_url = source
@@ -75,7 +77,7 @@ def migrate_repo(repo, results_file, door43_repos, out_dir):
 
     lang_code = name[4:]
 
-    # if lang_code != 'en':
+    # if lang_code != 'ceb':
     #     return
 
     if lang_code not in valid_repos:
@@ -106,15 +108,15 @@ def migrate_repo(repo, results_file, door43_repos, out_dir):
 
 def get_url(url, params=None):
     """
+    :param params:
     :param str|unicode url: URL to open
-    :param bool catch_exception: If <True> catches all exceptions and returns <False>
     :return tuple of file contents and header Link
     """
 
     if not params:
         params = {}
 
-    params['access_token'] = access_token
+    params['access_token'] = github_access_token
 
     response = requests.get(url, params=params)
     return response.text, response.links
@@ -162,6 +164,6 @@ if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
-    valid_repos = file_utils.read_file("valid_repo_list.txt").replace('\r','').split('\n')
-    access_token = file_utils.read_file("github_api_token")
+    valid_repos = file_utils.read_file("valid_repo_list.txt").replace('\r', '').split('\n')
+    github_access_token = file_utils.read_file("github_api_token")
     convert_door43_repos(REPOS_SOURCE)

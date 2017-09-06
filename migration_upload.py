@@ -32,7 +32,7 @@ HOST_NAME = 'https://aws.door43.org'
 RETRY_FAILURES = False
 MIGRATION_FOLDER = '../ConvertedDokuWiki'
 DESTINATION_ORG = 'DokuWiki'
-access_token = None
+github_access_token = None
 UPLOAD_RETRY_ON_ERROR = False
 
 
@@ -42,7 +42,7 @@ def get_url(url):
     :return response
     """
     headers = {
-        'Authorization': 'token ' + access_token
+        'Authorization': 'token ' + github_access_token
     }
 
     response = requests.get(url, headers=headers)
@@ -56,7 +56,7 @@ def post_url(url, data):
     :return tuple of file contents and header Link
     """
     headers = {
-        'Authorization': 'token ' + access_token,
+        'Authorization': 'token ' + github_access_token,
         'Content-Type': 'application/x-www-form-urlencoded'
     }
 
@@ -323,5 +323,5 @@ if __name__ == '__main__':
     args = sys.argv
     args.pop(0)
 
-    access_token = file_utils.read_file("gogs_api_token")
+    github_access_token = file_utils.read_file("gogs_api_token")
     upload_repos()
