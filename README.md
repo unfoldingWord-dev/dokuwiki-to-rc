@@ -24,4 +24,14 @@ For more information on how to use this script see [Convert OBS from DokuWiki to
 
 ### DokuWiki OBS mass migration
 
-Three scripts for moving OBS projects off of DokuWiki (in github.com/Door43), converts to Resource Container, and pushes to DCS (git.door43.org/DokuWiki).  The first script 
+Three scripts for moving OBS projects off of DokuWiki (in github.com/Door43), converting to Resource Container, and pushes up to DCS (git.door43.org/DokuWiki).  The first script does downloading of OBS projects from docuWiki and converting to Resource Containers in DESTINATION_FOLDER.  This script keeps track of progress and can be started again without penalty if script dies due to communication errors.
+
+    ./migration_dw_to_rc.py
+    
+The next script will check-in each resource container in DESTINATION_FOLDER into git and push up to a repo in door43.org/DokuWiki. This script keeps track of progress and can be started again without penalty if script dies due to communication errors.
+
+    ./migration_upload.py
+
+The final script is to show summary of all OBS migrations and uploads in DESTINATION_FOLDER.  The intent here is to see if there are any failures that are not expected.
+
+    ./migration_summary.py

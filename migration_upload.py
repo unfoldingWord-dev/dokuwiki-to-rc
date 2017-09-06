@@ -12,11 +12,10 @@
 #
 
 ####################################################################################################
-# Upload all converted OBS repos on github.com/Door43 from DokuWiki to Resource containers in ../ConvertedDokuWiki
+# Upload all migrated Resource containers in ../ConvertedDokuWiki up to door43.org/DokuWiki
 #
-# setup: get token from github and save in file 'github_api_token'
-#  see https://github.com/blog/1509-personal-api-tokens for how to create a token and set the scope to
-#    'public_repo'
+# setup: get token from door43.org and save in file 'gogs_api_token'
+#  use applications to get a token
 ####################################################################################################
 
 from __future__ import unicode_literals

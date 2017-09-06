@@ -12,7 +12,11 @@
 #
 
 ####################################################################################################
-# show summary of all OBS migrations in ../ConvertedDokuWiki
+# show summary of all OBS migrations and uploads in ../ConvertedDokuWiki
+#   The intent here is to see if there are any failures that are not expected
+#
+# setup: get token from door43.org and save in file 'gogs_api_token'
+#  use applications to get a token
 ####################################################################################################
 
 from __future__ import unicode_literals
