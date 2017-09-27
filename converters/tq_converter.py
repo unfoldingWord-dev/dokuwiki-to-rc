@@ -159,7 +159,7 @@ class TQConverter(object):
                     'identifier': 'obs-tq',
                     'language': {
                         'direction': self.lang_data['ld'],
-                        'identifier': status['source_text'],
+                        'identifier': self.lang_data['lc'],
                         'title': self.lang_data['ang']
                     },
                     'modified': datetime.today().strftime('%Y-%m-%d'),
