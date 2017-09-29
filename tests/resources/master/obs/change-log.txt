@@ -1,0 +1,53 @@
+===== How to Update a Previous Version of Open Bible Stories =====
+
+===== Identify which Version of Open Bible Stories =====
+
+Many translations have the version number listed. If the version number is not available, figuring out which version a translation was based off of is important. 
+
+To figure out which version a particular translation was translated from, do the following:
+
+  * Check story #45. If it ends with Philip looking at the chariot, then it is translated from version 1.x. If it ends with the Ethiopian Official smiling, go to the next step.
+  * Check frame 06-02. If the phrase "to the land where Abraham's relatives lived" is not included, then it is translated from version 2.x. If it is included, it is translated from at least version 3.x. (Also check frame 09-06. If "in order to save him from being killed" is not included, it is translated from version 2.x. If it is included, it is translated from at least version 3.x.)
+  * If you are still not sure, we have created a complete set of all the changes between Version 1.x (see http://ufw.io/obs1-3) or Version 2.x (see http://ufw.io/obs2-3) and the current version. Compare your translation to this list of changes to determine which version your translation was made from. Note: All text highlighted in green has been added, text highlighted in yellow has been changed, and text highlighted in red has been deleted. Only frames that have changed are included in these lists.
+
+===== Update to the Latest Version of Open Bible Stories =====
+
+Once you have identified which version of Open Bible Stories the translation in your language used, you will need to update the translation in your language to the latest version. To help simplify the update process, we have generated change logs of all of the changes that happened between version 1.x and the latest (see http://ufw.io/obs1-3) and version 2.x and the latest (see http://ufw.io/obs2-3). Simply go through these changes and update the text in your language according to those documents, and your translation of Open Bible Stories will be up to date.
+
+
+===== A Change Log of Recent Minor Changes to Open Bible Stories =====
+
+3.2.1 -> 4
+  * New Versioning System, read more [[https://unfoldingword.org/versioning/|here]]
+  * 07 - "God Blessed Jacob" -> "God Blesses Jacob"
+  * 49-06 - NEW IMAGE
+
+3.2 -> 3.2.1
+  * 03-11 - Later Noah -> Later, Noah
+  * 11-01 - males of both people -> males of Egypt's people
+  * 12-14 - unleavened bread -> bread that was made without yeast
+  * 13-05 - holy. That is, -> holy. In other words,
+  * 16-09 - cloth -> sheep skin (3x)
+  * 17-07 - was the Messiah" -> was the Messiah
+  * 18-13 - evil, corrupt, and they worshiped -> evil and corrupt, and they worshiped
+  * 19-04 - because of the famine -> because the lack of rain had caused a famine
+  * 22-02 - how will -> how can
+  * 23-08 - <del>Mary was very happy, too.</del>
+  * 26-10 - who were called -> whom he called
+  * 36-01 - and John -> and John,
+  * 38-09 - you will deny that you even know me three times -> you will deny three times that you even know me
+  * 40-06 - It stayed dark from noon until 3:00 in the afternoon. -> It became dark at noon and stayed dark for three hours.
+  * 43-02 - the harvest -> the wheat harvest.
+  * 45 - Philip and the Ethiopian Official -> Stephen and Philip
+  * 49-01 - virgin, she -> virgin, the Holy Spirit overshadowed her and she became pregnant. She
+
+3.1.1 -> 3.2
+  * 13-15 - <del>Moses climbed the mountain again and prayed that God would forgive the people. God listened to Moses and forgave them. Moses wrote the Ten Commandments on new stone tablets ​to replace the ones he had broken. Then God led the Israelites away from Mount Sinai toward the Promised Land.</del> Moses made new stone tablets for the Ten Commandments to replace the ones that he had broken. Then he climbed the mountain again and prayed that God would forgive the people. God listened to Moses and forgave them. Moses came back down the mountain with the Ten Commandments on the new tablets. Then God led the Israelites away from Mount Sinai toward the Promised Land.
+  * 13-15 - NEW IMAGE
+  * 14-01 After God had told the Israelites the laws __**that**__ he wanted them to obey as part of his covenant with them, they left Mount Sinai. God began leading them **<del>from</del>** toward the Promised Land, which was also called Canaan. The pillar of cloud went ahead of them toward**<del>s</del>** ​Canaan and they followed it.
+
+3.1 -> 3.1.1
+
+  * 06-12 “Gideon's 300 men soldiers” -> “Gideon's 300 soldiers"
+  * 21-02 “every people groups” -> “every people group"
+  * 39-12 “so he ordered his soldiers ​to crucify Jesus.” -> “so he agreed to have his soldiers crucify Jesus."
