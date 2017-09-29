@@ -64,7 +64,7 @@ def repair_migration(org, lang, type, ignore_if_exists=False):
         # print("Migrated repo {0} not found".format(source_repo_name))
         return False
 
-    print("repairing " + source_repo_name)
+    print("checking " + source_repo_name)
 
     destination_repo_name = lang + '_obs'
     if type != 'obs':
@@ -87,7 +87,7 @@ def repair_migration(org, lang, type, ignore_if_exists=False):
             language = core['language']
             if 'identifier' in language:
                 identifier = language['identifier']
-                if (identifier == 'en') and (identifier != lang):
+                if (identifier != lang):
                     language['identifier'] = lang
                     file_utils.write_file(manifest_file, manifest)
 
@@ -100,7 +100,7 @@ def repair_migration(org, lang, type, ignore_if_exists=False):
     return True
 
 
-def refresh_git_repo(changed, untracked, source_repo_name, upload_results_file):
+def refresh_git_repo(changed, untracked, source_repo_name, upload_results_file, no_push=False):
     print("Found uncommitted changes")
 
     if untracked:
@@ -119,16 +119,21 @@ def refresh_git_repo(changed, untracked, source_repo_name, upload_results_file):
             error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
             return False
 
-        success = run_git(['push', 'origin', 'master'], source_repo_name)
-        if not success:
-            error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
-            return False
+        if not no_push:
+            success = run_git(['push', 'origin', 'master'], source_repo_name)
+            if not success:
+                error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
+                return False
 
     return True
 
 
 def update_local_git_repo(source_repo_name, upload_results_file):
     print("Updating local repo: {0}".format(source_repo_name))
+    changed, untracked = is_git_changed(source_repo_name)
+    if changed:
+        refresh_git_repo(changed, untracked, source_repo_name, upload_results_file, no_push=True)
+
     success = run_git(['pull', 'origin', 'master'], source_repo_name)
     if not success:
         error_log(upload_results_file, "git commit {0} failed".format(source_repo_name))
@@ -141,6 +146,16 @@ def is_uploaded(upload_results_file, source_repo_name, org, destination_repo_nam
     try:
         previous_upload_results = file_utils.load_json_object(upload_results_file)
         if not previous_upload_results:
+
+            # double check in case uploaded without results
+            repo_exists = isRepoPresent(HOST_NAME, org, destination_repo_name, gogs_access_token)
+            if repo_exists:
+                print("already uploaded")
+                success = make_sure_git_updated_from_repo(source_repo_name, upload_results_file)
+                if not success:
+                    print("failed to update, no .git?")
+                    return False
+                return True
             return False
 
         success = previous_upload_results and previous_upload_results['success']
